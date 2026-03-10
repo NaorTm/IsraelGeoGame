@@ -1,18 +1,21 @@
 import { useState } from 'react';
 import type { Settlement } from '../types';
 import GameMap from './GameMap';
+import { calculateAttemptScore } from '../utils/geo';
 
 interface PlayingScreenProps {
+  availableSettlements: Settlement[];
   settlement: Settlement;
   currentRound: number;
   totalRounds: number;
   totalScore: number;
   mode: string;
-  onSubmitGuess: (lat: number, lng: number) => void;
+  onSubmitGuess: (wrongGuessIds: string[]) => void;
   onEndGame: () => void;
 }
 
 export default function PlayingScreen({
+  availableSettlements,
   settlement,
   currentRound,
   totalRounds,
@@ -21,18 +24,42 @@ export default function PlayingScreen({
   onSubmitGuess,
   onEndGame,
 }: PlayingScreenProps) {
-  const [guess, setGuess] = useState<[number, number] | null>(null);
+  const [wrongGuessIds, setWrongGuessIds] = useState<string[]>([]);
 
-  const handleMapClick = (lat: number, lng: number) => {
-    setGuess([lat, lng]);
-  };
+  const currentPoints = calculateAttemptScore(wrongGuessIds.length);
 
-  const handleConfirm = () => {
-    if (guess) {
-      onSubmitGuess(guess[0], guess[1]);
-      setGuess(null);
+  const handleSettlementClick = (selectedSettlementId: string) => {
+    if (selectedSettlementId === settlement.id) {
+      onSubmitGuess(wrongGuessIds);
+      setWrongGuessIds([]);
+      return;
     }
+
+    setWrongGuessIds((previous) => {
+      if (previous.includes(selectedSettlementId)) {
+        return previous;
+      }
+
+      return [...previous, selectedSettlementId];
+    });
   };
+
+  const missesLabel =
+    wrongGuessIds.length === 0
+      ? 'עדיין בלי פספוסים'
+      : `${wrongGuessIds.length} פספוסים בסיבוב הזה`;
+
+  const pointsLabel =
+    currentPoints > 0
+      ? `${currentPoints} נקודות אם תפגע עכשיו`
+      : 'עדיין אפשר לפגוע, אבל הניקוד ירד ל-0';
+
+  const wrongGuessNames = wrongGuessIds
+    .map(
+      (settlementId) =>
+        availableSettlements.find((item) => item.id === settlementId)?.name_he
+    )
+    .filter((value): value is string => Boolean(value));
 
   const roundLabel =
     mode === 'endless'
@@ -64,22 +91,25 @@ export default function PlayingScreen({
       {/* Map */}
       <div className="map-container">
         <GameMap
-          onMapClick={handleMapClick}
-          guessPosition={guess}
-          correctPosition={null}
+          settlements={availableSettlements}
+          wrongGuessIds={wrongGuessIds}
+          onSettlementSelect={handleSettlementClick}
           interactive={true}
         />
       </div>
 
-      {/* Confirm button */}
+      {/* Round status */}
       <div className="confirm-area">
-        {guess ? (
-          <button className="confirm-btn" onClick={handleConfirm}>
-            ✓ אישור ניחוש
-          </button>
-        ) : (
-          <p className="click-hint">👆 לחץ על המפה כדי לנחש</p>
+        <div className="attempt-status">
+          <div className="attempt-score">{pointsLabel}</div>
+          <div className="attempt-misses">{missesLabel}</div>
+        </div>
+        {wrongGuessNames.length > 0 && (
+          <div className="wrong-guesses-list">
+            ניסיונות קודמים: {wrongGuessNames.join(' • ')}
+          </div>
         )}
+        <p className="click-hint">לחץ על צורת היישוב הנכון במפה</p>
       </div>
     </div>
   );

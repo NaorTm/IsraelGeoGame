@@ -1,5 +1,5 @@
 import type { RoundResult } from '../types';
-import { formatDistance } from '../utils/geo';
+import { formatAttempts } from '../utils/geo';
 
 interface SummaryScreenProps {
   results: RoundResult[];
@@ -12,9 +12,9 @@ export default function SummaryScreen({
   totalScore,
   onRestart,
 }: SummaryScreenProps) {
-  const avgDistance =
+  const avgAttempts =
     results.length > 0
-      ? results.reduce((sum, r) => sum + r.distanceKm, 0) / results.length
+      ? results.reduce((sum, r) => sum + r.attempts, 0) / results.length
       : 0;
 
   const bestRound = results.reduce(
@@ -22,8 +22,9 @@ export default function SummaryScreen({
     results[0]
   );
 
-  const maxPossible = results.length * 1000;
-  const percentage = maxPossible > 0 ? Math.round((totalScore / maxPossible) * 100) : 0;
+  const maxPossible = results.length * 3;
+  const percentage =
+    maxPossible > 0 ? Math.round((totalScore / maxPossible) * 100) : 0;
 
   function getOverallEmoji(pct: number): string {
     if (pct >= 90) return '🏆';
@@ -56,8 +57,8 @@ export default function SummaryScreen({
               <span className="stat-label">דיוק</span>
             </div>
             <div className="stat-item">
-              <span className="stat-value">{formatDistance(avgDistance)}</span>
-              <span className="stat-label">ממוצע מרחק</span>
+              <span className="stat-value">{avgAttempts.toFixed(1)}</span>
+              <span className="stat-label">ממוצע פספוסים</span>
             </div>
           </div>
         </div>
@@ -65,7 +66,7 @@ export default function SummaryScreen({
         {bestRound && (
           <div className="best-round">
             🎯 הניחוש הטוב ביותר: {bestRound.settlement.name_he} (
-            {formatDistance(bestRound.distanceKm)})
+            {formatAttempts(bestRound.attempts)})
           </div>
         )}
 
@@ -76,16 +77,16 @@ export default function SummaryScreen({
               <tr>
                 <th>#</th>
                 <th>יישוב</th>
-                <th>מרחק</th>
+                <th>פספוסים</th>
                 <th>ניקוד</th>
               </tr>
             </thead>
             <tbody>
               {results.map((r, i) => (
-                <tr key={i} className={r.score >= 800 ? 'excellent' : ''}>
+                <tr key={i} className={r.score === 3 ? 'excellent' : ''}>
                   <td>{i + 1}</td>
                   <td>{r.settlement.name_he}</td>
-                  <td>{formatDistance(r.distanceKm)}</td>
+                  <td>{r.attempts}</td>
                   <td className="score-cell">{r.score}</td>
                 </tr>
               ))}

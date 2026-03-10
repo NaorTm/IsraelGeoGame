@@ -1,9 +1,11 @@
 import type { RoundResult } from '../types';
-import { formatDistance } from '../utils/geo';
+import type { Settlement } from '../types';
+import { formatAttempts } from '../utils/geo';
 import { regions } from '../data/regions';
 import GameMap from './GameMap';
 
 interface FeedbackScreenProps {
+  availableSettlements: Settlement[];
   result: RoundResult;
   currentRound: number;
   totalRounds: number;
@@ -14,15 +16,14 @@ interface FeedbackScreenProps {
 }
 
 function getScoreLabel(score: number): { text: string; emoji: string } {
-  if (score >= 950) return { text: 'מושלם!', emoji: '🎯' };
-  if (score >= 800) return { text: 'מצוין!', emoji: '🌟' };
-  if (score >= 600) return { text: 'טוב מאוד!', emoji: '👏' };
-  if (score >= 400) return { text: 'לא רע!', emoji: '👍' };
-  if (score >= 200) return { text: 'יש מקום לשיפור', emoji: '🤔' };
-  return { text: 'נסה שוב!', emoji: '💪' };
+  if (score === 3) return { text: 'מושלם!', emoji: '🎯' };
+  if (score === 2) return { text: 'כמעט מיד!', emoji: '🌟' };
+  if (score === 1) return { text: 'מצאת בסוף', emoji: '👏' };
+  return { text: 'נכון, אבל בלי נקודות', emoji: '💪' };
 }
 
 export default function FeedbackScreen({
+  availableSettlements,
   result,
   currentRound,
   totalRounds,
@@ -56,9 +57,9 @@ export default function FeedbackScreen({
             <span className="detail-value">{regionName}</span>
           </div>
           <div className="detail-row">
-            <span className="detail-label">מרחק:</span>
+            <span className="detail-label">ניסיונות:</span>
             <span className="detail-value distance">
-              {formatDistance(result.distanceKm)}
+              {formatAttempts(result.attempts)}
             </span>
           </div>
           <div className="detail-row score-row">
@@ -67,6 +68,12 @@ export default function FeedbackScreen({
               +{result.score} נקודות
             </span>
           </div>
+          {result.usedApproximateBoundary && (
+            <div className="detail-row score-row">
+              <span className="detail-label">הערה:</span>
+              <span className="detail-value">ליישוב הזה מוצג אזור מקורב</span>
+            </div>
+          )}
         </div>
 
         <div className="feedback-total">סה"כ ניקוד: {totalScore}</div>
@@ -75,8 +82,9 @@ export default function FeedbackScreen({
       {/* Map showing both markers */}
       <div className="map-container feedback-map">
         <GameMap
-          guessPosition={[result.guessLat, result.guessLng]}
-          correctPosition={[result.settlement.lat, result.settlement.lng]}
+          settlements={availableSettlements}
+          revealedSettlementId={result.settlement.id}
+          wrongGuessIds={result.wrongGuessIds}
           interactive={false}
         />
       </div>

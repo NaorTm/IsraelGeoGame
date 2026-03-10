@@ -1,52 +1,14 @@
-import { useCallback } from 'react';
-import {
-  MapContainer,
-  TileLayer,
-  Marker,
-  Polyline,
-  useMapEvents,
-  useMap,
-} from 'react-leaflet';
+import { useEffect, useMemo, useState } from 'react';
+import type { FeatureCollection } from 'geojson';
+import { MapContainer, TileLayer, GeoJSON } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-
-// Fix default icon issue with Leaflet + bundlers
-import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
-import markerIcon from 'leaflet/dist/images/marker-icon.png';
-import markerShadow from 'leaflet/dist/images/marker-shadow.png';
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: markerIcon2x,
-  iconUrl: markerIcon,
-  shadowUrl: markerShadow,
-});
-
-const guessIcon = new L.Icon({
-  iconUrl: markerIcon,
-  iconRetinaUrl: markerIcon2x,
-  shadowUrl: markerShadow,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-  className: 'guess-marker',
-});
-
-const correctIcon = new L.DivIcon({
-  className: 'correct-marker-icon',
-  html: `<div style="
-    background: #22c55e;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    border: 3px solid white;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-  "></div>`,
-  iconSize: [24, 24],
-  iconAnchor: [12, 12],
-});
+import type { Settlement, SettlementBoundaryCollection } from '../types';
+import {
+  getSettlementFeature,
+  hasLoadedBoundariesForSettlements,
+  loadBoundaryCollectionsForSettlements,
+} from '../utils/settlementBoundaries';
 
 // Israel bounds
 const ISRAEL_CENTER: [number, number] = [31.5, 35.0];
@@ -55,98 +17,244 @@ const ISRAEL_BOUNDS: L.LatLngBoundsExpression = [
   [33.5, 36.0],
 ];
 
+const TILE_LAYER_URL =
+  'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png';
+
+const TILE_LAYER_ATTRIBUTION =
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
+
 interface GameMapProps {
-  onMapClick?: (lat: number, lng: number) => void;
-  guessPosition?: [number, number] | null;
-  correctPosition?: [number, number] | null;
+  settlements: Settlement[];
+  revealedSettlementId?: string | null;
+  wrongGuessIds?: string[];
+  onSettlementSelect?: (settlementId: string) => void;
   interactive: boolean;
 }
 
-function ClickHandler({
-  onClick,
-}: {
-  onClick: (lat: number, lng: number) => void;
-}) {
-  useMapEvents({
-    click(e) {
-      onClick(e.latlng.lat, e.latlng.lng);
-    },
-  });
-  return null;
-}
+const DEFAULT_STYLE: L.PathOptions = {
+  color: '#2563eb',
+  weight: 1.1,
+  fillColor: '#60a5fa',
+  fillOpacity: 0.12,
+};
 
-function FitBounds({
-  guess,
-  correct,
-}: {
-  guess: [number, number] | null;
-  correct: [number, number] | null;
-}) {
-  const map = useMap();
+const WRONG_STYLE: L.PathOptions = {
+  color: '#dc2626',
+  weight: 2,
+  fillColor: '#f87171',
+  fillOpacity: 0.38,
+};
 
-  if (guess && correct) {
-    const bounds = L.latLngBounds([guess, correct]);
-    setTimeout(() => {
-      map.fitBounds(bounds, { padding: [80, 80], maxZoom: 12 });
-    }, 100);
-  }
+const TARGET_STYLE: L.PathOptions = {
+  color: '#15803d',
+  weight: 2.4,
+  fillColor: '#4ade80',
+  fillOpacity: 0.46,
+};
 
-  return null;
+const APPROXIMATE_STYLE: L.PathOptions = {
+  dashArray: '6 4',
+};
+
+function getLayerStyle(
+  settlementId: string,
+  approximate: boolean,
+  revealedSettlementId?: string | null,
+  wrongGuessIds: Set<string> = new Set()
+): L.PathOptions {
+  const baseStyle =
+    settlementId === revealedSettlementId
+      ? TARGET_STYLE
+      : wrongGuessIds.has(settlementId)
+        ? WRONG_STYLE
+        : DEFAULT_STYLE;
+
+  return approximate ? { ...baseStyle, ...APPROXIMATE_STYLE } : baseStyle;
 }
 
 export default function GameMap({
-  onMapClick,
-  guessPosition,
-  correctPosition,
+  settlements,
+  revealedSettlementId,
+  wrongGuessIds,
+  onSettlementSelect,
   interactive,
 }: GameMapProps) {
-  const handleClick = useCallback(
-    (lat: number, lng: number) => {
-      if (interactive && onMapClick) {
-        onMapClick(lat, lng);
+  const [boundaryCollection, setBoundaryCollection] =
+    useState<SettlementBoundaryCollection>({});
+  const [isLoadingBoundaries, setIsLoadingBoundaries] = useState(() =>
+    !hasLoadedBoundariesForSettlements(settlements)
+  );
+
+  const wrongGuessSet = useMemo(
+    () => new Set(wrongGuessIds ?? []),
+    [wrongGuessIds]
+  );
+
+  const settlementNameById = useMemo(
+    () =>
+      new Map(
+        settlements.map((settlement) => [
+          settlement.id,
+          `${settlement.name_he} (${settlement.name_en})`,
+        ])
+      ),
+    [settlements]
+  );
+
+  useEffect(() => {
+    let isDisposed = false;
+
+    setIsLoadingBoundaries(!hasLoadedBoundariesForSettlements(settlements));
+
+    void loadBoundaryCollectionsForSettlements(settlements).then((loadedBoundaries) => {
+      if (isDisposed) {
+        return;
       }
-    },
-    [interactive, onMapClick]
+
+      setBoundaryCollection((previous) => ({
+        ...previous,
+        ...loadedBoundaries,
+      }));
+      setIsLoadingBoundaries(false);
+    });
+
+    return () => {
+      isDisposed = true;
+    };
+  }, [settlements]);
+
+  const featureCollection = useMemo(
+    () => ({
+      type: 'FeatureCollection',
+      features: settlements.map((settlement) =>
+        getSettlementFeature(settlement, boundaryCollection)
+      ),
+    }) as FeatureCollection,
+    [boundaryCollection, settlements]
+  );
+
+  const hasApproximateFeatures = useMemo(
+    () =>
+      featureCollection.features.some(
+        (feature) => feature.properties?.approximate === true
+      ),
+    [featureCollection]
   );
 
   return (
-    <MapContainer
-      center={ISRAEL_CENTER}
-      zoom={7}
-      minZoom={6}
-      maxZoom={16}
-      maxBounds={ISRAEL_BOUNDS}
-      maxBoundsViscosity={1.0}
-      style={{ height: '100%', width: '100%', borderRadius: '12px' }}
-      className="game-map"
-    >
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
+    <div className="game-map-shell">
+      <MapContainer
+        center={ISRAEL_CENTER}
+        zoom={7}
+        minZoom={6}
+        maxZoom={16}
+        maxBounds={ISRAEL_BOUNDS}
+        maxBoundsViscosity={1.0}
+        style={{ height: '100%', width: '100%', borderRadius: '12px' }}
+        className="game-map"
+      >
+        <TileLayer
+          attribution={TILE_LAYER_ATTRIBUTION}
+          url={TILE_LAYER_URL}
+          subdomains="abcd"
+        />
 
-      {interactive && <ClickHandler onClick={handleClick} />}
+        <GeoJSON
+          data={featureCollection}
+          style={(feature) =>
+            getLayerStyle(
+              feature?.properties?.settlementId ?? '',
+              feature?.properties?.approximate === true,
+              revealedSettlementId,
+              wrongGuessSet
+            )
+          }
+          onEachFeature={(feature, layer) => {
+            const settlementId = feature.properties?.settlementId;
+            const approximate = feature.properties?.approximate === true;
+            const settlementName = settlementId
+              ? settlementNameById.get(settlementId)
+              : undefined;
 
-      {guessPosition && (
-        <Marker position={guessPosition} icon={guessIcon} />
+            if (settlementName) {
+              layer.bindTooltip(settlementName, {
+                sticky: true,
+                direction: 'top',
+                className: 'settlement-tooltip',
+                opacity: 0.96,
+              });
+            }
+
+            layer.on('mouseover', () => {
+              if (!interactive || !settlementId || !(layer instanceof L.Path)) {
+                return;
+              }
+
+              layer.setStyle({
+                ...getLayerStyle(
+                  settlementId,
+                  approximate,
+                  revealedSettlementId,
+                  wrongGuessSet
+                ),
+                weight: 2.4,
+                fillOpacity: 0.24,
+              });
+            });
+
+            layer.on('mouseout', () => {
+              if (!settlementId || !(layer instanceof L.Path)) {
+                return;
+              }
+
+              layer.setStyle(
+                getLayerStyle(
+                  settlementId,
+                  approximate,
+                  revealedSettlementId,
+                  wrongGuessSet
+                )
+              );
+            });
+
+            layer.on('click', () => {
+              if (interactive && settlementId && onSettlementSelect) {
+                onSettlementSelect(settlementId);
+              }
+            });
+          }}
+        />
+      </MapContainer>
+
+      <div className="map-legend">
+        <div className="map-legend-title">מקרא</div>
+        <div className="map-legend-item">
+          <span className="map-legend-swatch available" />
+          <span>יישוב לבחירה</span>
+        </div>
+        {wrongGuessSet.size > 0 && (
+          <div className="map-legend-item">
+            <span className="map-legend-swatch wrong" />
+            <span>ניחוש שגוי</span>
+          </div>
+        )}
+        {revealedSettlementId && (
+          <div className="map-legend-item">
+            <span className="map-legend-swatch correct" />
+            <span>התשובה הנכונה</span>
+          </div>
+        )}
+        {hasApproximateFeatures && (
+          <div className="map-legend-item">
+            <span className="map-legend-swatch approximate" />
+            <span>אזור מקורב</span>
+          </div>
+        )}
+      </div>
+
+      {isLoadingBoundaries && (
+        <div className="map-loading-badge">טוען גבולות מדויקים...</div>
       )}
-
-      {correctPosition && (
-        <Marker position={correctPosition} icon={correctIcon} />
-      )}
-
-      {guessPosition && correctPosition && (
-        <>
-          <Polyline
-            positions={[guessPosition, correctPosition]}
-            color="#ef4444"
-            weight={3}
-            dashArray="8, 8"
-            opacity={0.8}
-          />
-          <FitBounds guess={guessPosition} correct={correctPosition} />
-        </>
-      )}
-    </MapContainer>
+    </div>
   );
 }

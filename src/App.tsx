@@ -20,6 +20,7 @@ export default function App() {
 
       {game.phase === 'playing' && game.currentSettlement && (
         <PlayingScreen
+          availableSettlements={game.filteredSettlements}
           settlement={game.currentSettlement}
           currentRound={game.currentRound}
           totalRounds={game.totalRounds}
@@ -32,6 +33,7 @@ export default function App() {
 
       {game.phase === 'feedback' && game.roundResults.length > 0 && (
         <FeedbackScreen
+          availableSettlements={game.filteredSettlements}
           result={game.roundResults[game.roundResults.length - 1]}
           currentRound={game.currentRound}
           totalRounds={game.totalRounds}

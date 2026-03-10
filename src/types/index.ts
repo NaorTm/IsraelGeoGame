@@ -1,3 +1,5 @@
+import type { Geometry } from 'geojson';
+
 export interface Settlement {
   id: string;
   name_he: string;
@@ -26,12 +28,27 @@ export interface Region {
   description_en: string;
 }
 
+export type SettlementBoundaryGeometry = Geometry;
+
+export interface SettlementBoundary {
+  centroid: {
+    lat: number;
+    lng: number;
+  };
+  geojson: SettlementBoundaryGeometry;
+  sourceName: string;
+  distanceKm: number;
+  approximate?: boolean;
+}
+
+export type SettlementBoundaryCollection = Record<string, SettlementBoundary>;
+
 export interface RoundResult {
   settlement: Settlement;
-  guessLat: number;
-  guessLng: number;
-  distanceKm: number;
+  attempts: number;
+  wrongGuessIds: string[];
   score: number;
+  usedApproximateBoundary: boolean;
 }
 
 export type GameMode = 'rounds' | 'endless';

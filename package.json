@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "boundaries:fetch": "node scripts/fetch-settlement-boundaries.mjs",
+    "boundaries:split": "node scripts/split-settlement-boundaries.mjs",
+    "boundaries:build": "npm run boundaries:fetch && npm run boundaries:split"
   },
   "dependencies": {
     "@types/leaflet": "^1.9.21",
@@ -17,6 +20,7 @@
     "react-leaflet": "^5.0.0"
   },
   "devDependencies": {
+    "@turf/simplify": "^7.3.0",
     "@eslint/js": "^9.39.1",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.7",

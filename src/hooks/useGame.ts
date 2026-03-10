@@ -1,7 +1,8 @@
 import { useState, useCallback, useMemo } from 'react';
 import type { Settlement, RoundResult, GameConfig, GamePhase } from '../types';
 import { settlements } from '../data/settlements';
-import { haversineDistance, calculateScore, shuffleArray } from '../utils/geo';
+import { calculateAttemptScore, shuffleArray } from '../utils/geo';
+import { usesApproximateBoundary } from '../utils/settlementBoundaries';
 
 interface GameState {
   phase: GamePhase;
@@ -68,23 +69,18 @@ export function useGame() {
   }, [filteredSettlements]);
 
   const submitGuess = useCallback(
-    (guessLat: number, guessLng: number) => {
+    (wrongGuessIds: string[]) => {
       if (!state.currentSettlement) return;
 
-      const distanceKm = haversineDistance(
-        guessLat,
-        guessLng,
-        state.currentSettlement.lat,
-        state.currentSettlement.lng
-      );
-      const score = calculateScore(distanceKm);
+      const attempts = wrongGuessIds.length;
+      const score = calculateAttemptScore(attempts);
 
       const result: RoundResult = {
         settlement: state.currentSettlement,
-        guessLat,
-        guessLng,
-        distanceKm,
+        attempts,
+        wrongGuessIds,
         score,
+        usedApproximateBoundary: usesApproximateBoundary(state.currentSettlement),
       };
 
       setState((prev) => ({
