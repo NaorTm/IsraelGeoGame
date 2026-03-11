@@ -12,6 +12,18 @@ interface MenuScreenProps {
   onStartGame: () => void;
 }
 
+const gameModes: Array<{
+  id: GameMode;
+  label: string;
+  description: string;
+}> = [
+  { id: 'rounds', label: '🎯 סיבובים', description: 'משחק קלאסי עם מספר סיבובים קבוע' },
+  { id: 'endless', label: '♾️ אינסוף', description: 'המשך לשחק בלי סוף ידני' },
+  { id: 'time_attack', label: '⏱️ זמן', description: 'הכה בשעון כדי לקבל בונוס מהירות' },
+  { id: 'survival', label: '❤️ הישרדות', description: 'אחרי 3 טעויות המשחק נגמר' },
+  { id: 'mastery', label: '🏁 שליטה במחוזות', description: 'מסיימים מחוז ואז פותחים את הבא' },
+];
+
 export default function MenuScreen({
   config,
   onUpdateConfig,
@@ -49,6 +61,7 @@ export default function MenuScreen({
         ).length;
 
   const canStart = availableCount >= 1;
+  const selectedMode = gameModes.find((mode) => mode.id === config.mode);
 
   return (
     <div className="menu-screen">
@@ -128,27 +141,22 @@ export default function MenuScreen({
         <div className="menu-section">
           <h2 className="section-title">מצב משחק</h2>
           <div className="mode-buttons">
-            <button
-              className={`mode-btn ${
-                config.mode === 'rounds' ? 'active' : ''
-              }`}
-              onClick={() => onUpdateConfig({ mode: 'rounds' as GameMode })}
-            >
-              🎯 סיבובים
-            </button>
-            <button
-              className={`mode-btn ${
-                config.mode === 'endless' ? 'active' : ''
-              }`}
-              onClick={() => onUpdateConfig({ mode: 'endless' as GameMode })}
-            >
-              ♾️ אינסוף
-            </button>
+            {gameModes.map((mode) => (
+              <button
+                key={mode.id}
+                className={`mode-btn ${config.mode === mode.id ? 'active' : ''}`}
+                onClick={() => onUpdateConfig({ mode: mode.id })}
+              >
+                {mode.label}
+              </button>
+            ))}
           </div>
+          {selectedMode && (
+            <p className="mode-description">{selectedMode.description}</p>
+          )}
         </div>
 
-        {/* Round count */}
-        {config.mode === 'rounds' && (
+        {(config.mode === 'rounds' || config.mode === 'time_attack') && (
           <div className="menu-section">
             <h2 className="section-title">מספר סיבובים</h2>
             <div className="round-buttons">
@@ -161,6 +169,25 @@ export default function MenuScreen({
                   onClick={() => onUpdateConfig({ roundCount: n })}
                 >
                   {n}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {config.mode === 'time_attack' && (
+          <div className="menu-section">
+            <h2 className="section-title">זמן לכל סיבוב</h2>
+            <div className="round-buttons">
+              {[15, 20, 30].map((seconds) => (
+                <button
+                  key={seconds}
+                  className={`round-btn ${
+                    config.timeLimitSeconds === seconds ? 'active' : ''
+                  }`}
+                  onClick={() => onUpdateConfig({ timeLimitSeconds: seconds })}
+                >
+                  {seconds}ש
                 </button>
               ))}
             </div>

@@ -64,17 +64,27 @@ export interface RoundResult {
   settlement: Settlement;
   attempts: number;
   wrongGuessIds: string[];
+  baseScore: number;
+  timeBonus: number;
+  streakBonus: number;
   score: number;
+  timedOut: boolean;
   usedApproximateBoundary: boolean;
 }
 
-export type GameMode = 'rounds' | 'endless';
+export type GameMode =
+  | 'rounds'
+  | 'endless'
+  | 'time_attack'
+  | 'survival'
+  | 'mastery';
 
 export interface GameConfig {
   selectedRegions: string[];
   roundCount: number;
   mode: GameMode;
   mapStyle: MapStyleId;
+  timeLimitSeconds: number;
 }
 
 export type GamePhase = 'menu' | 'playing' | 'feedback' | 'summary';

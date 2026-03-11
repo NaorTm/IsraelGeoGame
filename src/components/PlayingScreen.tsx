@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import type { MapStyleId, MapViewport, Settlement } from '../types';
+import { useEffect, useState } from 'react';
+import type { GameMode, MapStyleId, MapViewport, Settlement } from '../types';
 import GameMap from './GameMap';
 import { calculateAttemptScore } from '../utils/geo';
 
@@ -9,13 +9,22 @@ interface PlayingScreenProps {
   currentRound: number;
   totalRounds: number;
   totalScore: number;
-  mode: string;
+  mode: GameMode;
   mapStyle: MapStyleId;
   onMapStyleChange: (mapStyle: MapStyleId) => void;
   mapViewport: MapViewport;
   onMapViewportChange: (mapViewport: MapViewport) => void;
   completedSettlementIds: string[];
-  onSubmitGuess: (wrongGuessIds: string[]) => void;
+  currentStreak: number;
+  survivalLivesRemaining: number;
+  currentDistrictName: string | null;
+  timeLimitSeconds: number;
+  onSubmitGuess: (input: {
+    wrongGuessIds: string[];
+    timeRemainingSeconds?: number;
+    timedOut?: boolean;
+  }) => void;
+  onRegisterWrongGuess: () => void;
   onEndGame: () => void;
 }
 
@@ -31,17 +40,59 @@ export default function PlayingScreen({
   mapViewport,
   onMapViewportChange,
   completedSettlementIds,
+  currentStreak,
+  survivalLivesRemaining,
+  currentDistrictName,
+  timeLimitSeconds,
   onSubmitGuess,
+  onRegisterWrongGuess,
   onEndGame,
 }: PlayingScreenProps) {
   const [wrongGuessIds, setWrongGuessIds] = useState<string[]>([]);
+  const [timeRemaining, setTimeRemaining] = useState(timeLimitSeconds);
+  const [roundResolved, setRoundResolved] = useState(false);
 
   const currentPoints = calculateAttemptScore(wrongGuessIds.length);
 
+  useEffect(() => {
+    setWrongGuessIds([]);
+    setTimeRemaining(timeLimitSeconds);
+    setRoundResolved(false);
+  }, [settlement.id, timeLimitSeconds]);
+
+  useEffect(() => {
+    if (mode !== 'time_attack' || roundResolved) {
+      return;
+    }
+
+    if (timeRemaining <= 0) {
+      setRoundResolved(true);
+      onSubmitGuess({
+        wrongGuessIds,
+        timeRemainingSeconds: 0,
+        timedOut: true,
+      });
+      return;
+    }
+
+    const timerId = window.setTimeout(() => {
+      setTimeRemaining((previous) => Math.max(0, previous - 1));
+    }, 1000);
+
+    return () => window.clearTimeout(timerId);
+  }, [mode, onSubmitGuess, roundResolved, timeRemaining, wrongGuessIds]);
+
   const handleSettlementClick = (selectedSettlementId: string) => {
+    if (roundResolved) {
+      return;
+    }
+
     if (selectedSettlementId === settlement.id) {
-      onSubmitGuess(wrongGuessIds);
-      setWrongGuessIds([]);
+      setRoundResolved(true);
+      onSubmitGuess({
+        wrongGuessIds,
+        timeRemainingSeconds: mode === 'time_attack' ? timeRemaining : undefined,
+      });
       return;
     }
 
@@ -49,6 +100,8 @@ export default function PlayingScreen({
       if (previous.includes(selectedSettlementId)) {
         return previous;
       }
+
+      onRegisterWrongGuess();
 
       return [...previous, selectedSettlementId];
     });
@@ -60,9 +113,13 @@ export default function PlayingScreen({
       : `${wrongGuessIds.length} פספוסים בסיבוב הזה`;
 
   const pointsLabel =
-    currentPoints > 0
-      ? `${currentPoints} נקודות אם תפגע עכשיו`
-      : 'עדיין אפשר לפגוע, אבל הניקוד ירד ל-0';
+    mode === 'time_attack'
+      ? currentPoints > 0
+        ? `${currentPoints} נק' בסיס ועוד בונוס מהירות`
+        : 'נגמר ניקוד הבסיס, אבל עדיין יש זמן לסיים'
+      : currentPoints > 0
+        ? `${currentPoints} נקודות אם תפגע עכשיו`
+        : 'עדיין אפשר לפגוע, אבל הניקוד ירד ל-0';
 
   const wrongGuessNames = wrongGuessIds
     .map(
@@ -72,7 +129,7 @@ export default function PlayingScreen({
     .filter((value): value is string => Boolean(value));
 
   const roundLabel =
-    mode === 'endless'
+    mode === 'endless' || mode === 'survival'
       ? `סיבוב ${currentRound}`
       : `סיבוב ${currentRound} מתוך ${totalRounds}`;
 
@@ -83,8 +140,21 @@ export default function PlayingScreen({
         <div className="top-bar-info">
           <span className="round-label">{roundLabel}</span>
           <span className="score-label">ניקוד: {totalScore}</span>
+          {currentStreak > 1 && (
+            <span className="status-chip streak-chip">רצף: {currentStreak}</span>
+          )}
+          {mode === 'survival' && (
+            <span className="status-chip survival-chip">
+              חיים: {survivalLivesRemaining}
+            </span>
+          )}
+          {mode === 'time_attack' && (
+            <span className={`status-chip timer-chip ${timeRemaining <= 5 ? 'urgent' : ''}`}>
+              זמן: {timeRemaining}
+            </span>
+          )}
         </div>
-        {mode === 'endless' && (
+        {(mode === 'endless' || mode === 'survival') && (
           <button className="end-game-btn" onClick={onEndGame}>
             סיים משחק
           </button>
@@ -96,6 +166,9 @@ export default function PlayingScreen({
         <div className="prompt-label">איפה נמצא/ת:</div>
         <div className="settlement-name">{settlement.name_he}</div>
         <div className="settlement-name-en">{settlement.name_en}</div>
+        {currentDistrictName && mode === 'mastery' && (
+          <div className="mode-context">מחוז פעיל: {currentDistrictName}</div>
+        )}
       </div>
 
       {/* Map */}
@@ -124,7 +197,11 @@ export default function PlayingScreen({
             ניסיונות קודמים: {wrongGuessNames.join(' • ')}
           </div>
         )}
-        <p className="click-hint">לחץ על צורת היישוב הנכון במפה</p>
+        <p className="click-hint">
+          {mode === 'time_attack'
+            ? 'לחץ מהר על צורת היישוב הנכון כדי לשמור על בונוס המהירות'
+            : 'לחץ על צורת היישוב הנכון במפה'}
+        </p>
       </div>
     </div>
   );

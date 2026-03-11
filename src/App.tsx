@@ -15,7 +15,9 @@ const DEFAULT_MAP_VIEWPORT: MapViewport = {
 export default function App() {
   const game = useGame();
   const [mapViewport, setMapViewport] = useState<MapViewport>(DEFAULT_MAP_VIEWPORT);
-  const completedSettlementIds = game.roundResults.map((result) => result.settlement.id);
+  const completedSettlementIds = game.roundResults
+    .filter((result) => !result.timedOut)
+    .map((result) => result.settlement.id);
 
   return (
     <div className="app" dir="rtl">
@@ -40,7 +42,12 @@ export default function App() {
           mapViewport={mapViewport}
           onMapViewportChange={setMapViewport}
           completedSettlementIds={completedSettlementIds}
+          currentStreak={game.currentStreak}
+          survivalLivesRemaining={game.survivalLivesRemaining}
+          currentDistrictName={game.currentDistrictName}
+          timeLimitSeconds={game.config.timeLimitSeconds}
           onSubmitGuess={game.submitGuess}
+          onRegisterWrongGuess={game.registerWrongGuess}
           onEndGame={game.endGame}
         />
       )}
@@ -58,6 +65,9 @@ export default function App() {
           mapViewport={mapViewport}
           onMapViewportChange={setMapViewport}
           completedSettlementIds={completedSettlementIds}
+          currentStreak={game.currentStreak}
+          currentDistrictName={game.currentDistrictName}
+          isLastRound={game.isLastRound}
           onNextRound={game.nextRound}
           onEndGame={game.endGame}
         />
@@ -67,6 +77,8 @@ export default function App() {
         <SummaryScreen
           results={game.roundResults}
           totalScore={game.totalScore}
+          bestStreak={game.bestStreak}
+          mode={game.config.mode}
           onRestart={() => {
             setMapViewport(DEFAULT_MAP_VIEWPORT);
             game.resetGame();

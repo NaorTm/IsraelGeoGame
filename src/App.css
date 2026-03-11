@@ -222,10 +222,12 @@ body {
 .mode-buttons {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .mode-btn {
   flex: 1;
+  min-width: calc(50% - 4px);
   padding: 12px;
   border: 2px solid var(--border);
   border-radius: var(--radius-sm);
@@ -245,6 +247,13 @@ body {
 
 .mode-btn:hover {
   border-color: var(--primary);
+}
+
+.mode-description {
+  margin-top: 10px;
+  color: var(--text-light);
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 .round-buttons {
@@ -322,6 +331,7 @@ body {
   display: flex;
   gap: 20px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .round-label {
@@ -337,6 +347,33 @@ body {
   border-radius: 20px;
   font-weight: 600;
   font-size: 14px;
+}
+
+.status-chip {
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.streak-chip {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.survival-chip {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.timer-chip {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.timer-chip.urgent {
+  background: #fee2e2;
+  color: #b91c1c;
 }
 
 .end-game-btn {
@@ -380,6 +417,13 @@ body {
   color: var(--text-light);
   direction: ltr;
   margin-top: 2px;
+}
+
+.mode-context {
+  margin-top: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--primary);
 }
 
 .map-container {
@@ -659,6 +703,19 @@ body {
   font-size: 16px;
 }
 
+.feedback-streak {
+  margin-top: 10px;
+  color: #b45309;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.total-round-row {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
 .feedback-map {
   flex: 1;
   min-height: 0;
@@ -766,6 +823,16 @@ body {
   padding: 12px;
   background: var(--bg);
   border-radius: var(--radius-sm);
+}
+
+.summary-meta-row {
+  margin-top: 12px;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  color: var(--text-light);
+  font-size: 14px;
 }
 
 .stat-row .stat-value {
