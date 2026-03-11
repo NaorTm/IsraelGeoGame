@@ -121,6 +121,36 @@ Each region entry in `src/data/regions.ts`:
 
 Edit `src/data/settlements.ts` and add entries to the `settlements` array. Every settlement must reference a valid `region` id.
 
+To rebuild the settlements dataset from the official locality registries plus alias normalization, run:
+
+```bash
+npm run localities:build
+```
+
+### Rebuilding settlement polygons
+
+When you want to refresh the polygon dataset, run:
+
+```bash
+npm run boundaries:build
+```
+
+The fetch step first tries Nominatim, then falls back to an exact-name Overpass query around the settlement centroid when global text geocoding returns the wrong place. This matters most for ambiguous names and settlements in Judea & Samaria, where plain geocoding often resolves to roads or streets instead of the settlement polygon.
+
+For targeted retries, you can rebuild only a subset:
+
+```bash
+BOUNDARY_IDS=ariel,efrat,modiin_illit npm run boundaries:fetch
+```
+
+For large refreshes after expanding the locality list, use resumable chunks:
+
+```bash
+CHUNK_SIZE=20 MAX_BATCHES=5 npm run boundaries:batch
+```
+
+This will iterate over the current approximate-locality list, fetch boundaries in chunks, and re-split metadata after each chunk.
+
 ### Adding or changing regions
 
 Edit `src/data/regions.ts`. Update region ids in the settlements file to match. The game UI automatically picks up new regions.

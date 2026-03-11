@@ -29,14 +29,19 @@ export function useGame() {
     questionPool: [],
   });
 
+  const exactBoundarySettlements = useMemo(
+    () => settlements.filter((settlement) => !usesApproximateBoundary(settlement)),
+    []
+  );
+
   const filteredSettlements = useMemo(() => {
     if (state.config.selectedRegions.length === 0) {
-      return settlements;
+      return exactBoundarySettlements;
     }
-    return settlements.filter((s) =>
-      state.config.selectedRegions.includes(s.region)
+    return exactBoundarySettlements.filter((settlement) =>
+      state.config.selectedRegions.includes(settlement.region)
     );
-  }, [state.config.selectedRegions]);
+  }, [exactBoundarySettlements, state.config.selectedRegions]);
 
   const totalScore = useMemo(
     () => state.roundResults.reduce((sum, r) => sum + r.score, 0),

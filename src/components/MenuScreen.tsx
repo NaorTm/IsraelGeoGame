@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { regions } from '../data/regions';
 import type { GameConfig, GameMode } from '../types';
 import { settlements } from '../data/settlements';
+import { usesApproximateBoundary } from '../utils/settlementBoundaries';
 
 interface MenuScreenProps {
   config: GameConfig;
@@ -15,6 +16,9 @@ export default function MenuScreen({
   onStartGame,
 }: MenuScreenProps) {
   const [showRegionPicker, setShowRegionPicker] = useState(false);
+  const exactBoundarySettlements = settlements.filter(
+    (settlement) => !usesApproximateBoundary(settlement)
+  );
 
   const toggleRegion = (regionId: string) => {
     const current = config.selectedRegions;
@@ -33,9 +37,9 @@ export default function MenuScreen({
 
   const availableCount =
     config.selectedRegions.length === 0
-      ? settlements.length
-      : settlements.filter((s) =>
-          config.selectedRegions.includes(s.region)
+      ? exactBoundarySettlements.length
+      : exactBoundarySettlements.filter((settlement) =>
+          config.selectedRegions.includes(settlement.region)
         ).length;
 
   const canStart = availableCount >= 1;
@@ -53,6 +57,7 @@ export default function MenuScreen({
         {/* Region selection */}
         <div className="menu-section">
           <h2 className="section-title">בחר אזורים</h2>
+          <p className="region-info">מוצגים רק יישובים עם גבולות מדויקים במפה</p>
 
           <button
             className={`region-toggle-btn ${
@@ -60,7 +65,7 @@ export default function MenuScreen({
             }`}
             onClick={selectAllRegions}
           >
-            🌍 כל ישראל ({settlements.length} יישובים)
+            🌍 כל ישראל ({exactBoundarySettlements.length} יישובים)
           </button>
 
           <button
@@ -73,8 +78,8 @@ export default function MenuScreen({
           {showRegionPicker && (
             <div className="region-grid">
               {regions.map((region) => {
-                const count = settlements.filter(
-                  (s) => s.region === region.id
+                const count = exactBoundarySettlements.filter(
+                  (settlement) => settlement.region === region.id
                 ).length;
                 const isSelected = config.selectedRegions.includes(region.id);
                 return (

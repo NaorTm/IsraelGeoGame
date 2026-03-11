@@ -115,6 +115,13 @@ async function main() {
   );
   const grouped = new Map();
   const approximateSettlementIds = new Set(missing);
+  const boundaryIds = new Set(Object.keys(boundaries));
+
+  for (const settlement of settlements) {
+    if (!boundaryIds.has(settlement.id)) {
+      approximateSettlementIds.add(settlement.id);
+    }
+  }
 
   for (const [settlementId, boundary] of Object.entries(boundaries)) {
     const region = settlementToRegion.get(settlementId);
