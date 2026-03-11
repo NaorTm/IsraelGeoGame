@@ -165,17 +165,6 @@ export default function GameMap({
     return props;
   }, [selectedMapStyle]);
 
-  const settlementNameById = useMemo(
-    () =>
-      new Map(
-        settlements.map((settlement) => [
-          settlement.id,
-          `${settlement.name_he} (${settlement.name_en})`,
-        ])
-      ),
-    [settlements]
-  );
-
   useEffect(() => {
     let isDisposed = false;
 
@@ -224,6 +213,12 @@ export default function GameMap({
         .join('|'),
     [featureCollection]
   );
+  const featureStyleKey = useMemo(() => {
+    const correctKey = [...correctSettlementSet].sort().join('|');
+    const wrongKey = (wrongGuessIds ?? []).join('|');
+
+    return `${correctKey}::${wrongKey}`;
+  }, [correctSettlementSet, wrongGuessIds]);
 
   return (
     <div className="game-map-shell">
@@ -244,7 +239,7 @@ export default function GameMap({
         />
 
         <GeoJSON
-          key={featureCollectionKey}
+          key={`${featureCollectionKey}::${featureStyleKey}`}
           data={featureCollection}
           style={(feature) =>
             getLayerStyle(
@@ -257,18 +252,6 @@ export default function GameMap({
           onEachFeature={(feature, layer) => {
             const settlementId = feature.properties?.settlementId;
             const approximate = feature.properties?.approximate === true;
-            const settlementName = settlementId
-              ? settlementNameById.get(settlementId)
-              : undefined;
-
-            if (settlementName) {
-              layer.bindTooltip(settlementName, {
-                sticky: true,
-                direction: 'top',
-                className: 'settlement-tooltip',
-                opacity: 0.96,
-              });
-            }
 
             layer.on('mouseover', () => {
               if (!interactive || !settlementId || !(layer instanceof L.Path)) {
