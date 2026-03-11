@@ -1,12 +1,21 @@
+import { useState } from 'react';
 import { useGame } from './hooks/useGame';
 import MenuScreen from './components/MenuScreen';
 import PlayingScreen from './components/PlayingScreen';
 import FeedbackScreen from './components/FeedbackScreen';
 import SummaryScreen from './components/SummaryScreen';
+import type { MapViewport } from './types';
 import './App.css';
+
+const DEFAULT_MAP_VIEWPORT: MapViewport = {
+  center: [31.5, 35.0],
+  zoom: 7,
+};
 
 export default function App() {
   const game = useGame();
+  const [mapViewport, setMapViewport] = useState<MapViewport>(DEFAULT_MAP_VIEWPORT);
+  const completedSettlementIds = game.roundResults.map((result) => result.settlement.id);
 
   return (
     <div className="app" dir="rtl">
@@ -28,6 +37,9 @@ export default function App() {
           mode={game.config.mode}
           mapStyle={game.config.mapStyle}
           onMapStyleChange={(mapStyle) => game.updateConfig({ mapStyle })}
+          mapViewport={mapViewport}
+          onMapViewportChange={setMapViewport}
+          completedSettlementIds={completedSettlementIds}
           onSubmitGuess={game.submitGuess}
           onEndGame={game.endGame}
         />
@@ -43,6 +55,9 @@ export default function App() {
           mode={game.config.mode}
           mapStyle={game.config.mapStyle}
           onMapStyleChange={(mapStyle) => game.updateConfig({ mapStyle })}
+          mapViewport={mapViewport}
+          onMapViewportChange={setMapViewport}
+          completedSettlementIds={completedSettlementIds}
           onNextRound={game.nextRound}
           onEndGame={game.endGame}
         />
@@ -52,7 +67,10 @@ export default function App() {
         <SummaryScreen
           results={game.roundResults}
           totalScore={game.totalScore}
-          onRestart={game.resetGame}
+          onRestart={() => {
+            setMapViewport(DEFAULT_MAP_VIEWPORT);
+            game.resetGame();
+          }}
         />
       )}
     </div>

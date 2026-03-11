@@ -1,5 +1,5 @@
 import type { RoundResult } from '../types';
-import type { MapStyleId, Settlement } from '../types';
+import type { MapStyleId, MapViewport, Settlement } from '../types';
 import { formatAttempts } from '../utils/geo';
 import { regions } from '../data/regions';
 import { getSettlementDistrictId } from '../utils/districts';
@@ -14,6 +14,9 @@ interface FeedbackScreenProps {
   mode: string;
   mapStyle: MapStyleId;
   onMapStyleChange: (mapStyle: MapStyleId) => void;
+  mapViewport: MapViewport;
+  onMapViewportChange: (mapViewport: MapViewport) => void;
+  completedSettlementIds: string[];
   onNextRound: () => void;
   onEndGame: () => void;
 }
@@ -34,6 +37,9 @@ export default function FeedbackScreen({
   mode,
   mapStyle,
   onMapStyleChange,
+  mapViewport,
+  onMapViewportChange,
+  completedSettlementIds,
   onNextRound,
   onEndGame,
 }: FeedbackScreenProps) {
@@ -90,7 +96,9 @@ export default function FeedbackScreen({
           settlements={availableSettlements}
           mapStyle={mapStyle}
           onMapStyleChange={onMapStyleChange}
-          revealedSettlementId={result.settlement.id}
+          mapViewport={mapViewport}
+          onMapViewportChange={onMapViewportChange}
+          correctSettlementIds={completedSettlementIds}
           wrongGuessIds={result.wrongGuessIds}
           interactive={false}
         />

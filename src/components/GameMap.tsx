@@ -1,10 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { FeatureCollection } from 'geojson';
-import { MapContainer, TileLayer, GeoJSON } from 'react-leaflet';
+import { MapContainer, TileLayer, GeoJSON, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { mapStyles } from '../data/mapStyles';
-import type { MapStyleId, Settlement, SettlementBoundaryCollection } from '../types';
+import type {
+  MapStyleId,
+  MapViewport,
+  Settlement,
+  SettlementBoundaryCollection,
+} from '../types';
 import {
   getSettlementFeature,
   hasLoadedBoundariesForSettlements,
@@ -22,7 +27,9 @@ interface GameMapProps {
   settlements: Settlement[];
   mapStyle: MapStyleId;
   onMapStyleChange: (mapStyle: MapStyleId) => void;
-  revealedSettlementId?: string | null;
+  mapViewport: MapViewport;
+  onMapViewportChange: (mapViewport: MapViewport) => void;
+  correctSettlementIds?: string[];
   wrongGuessIds?: string[];
   onSettlementSelect?: (settlementId: string) => void;
   interactive: boolean;
@@ -35,11 +42,25 @@ const DEFAULT_STYLE: L.PathOptions = {
   fillOpacity: 0.12,
 };
 
-const WRONG_STYLE: L.PathOptions = {
+const WRONG_FIRST_STYLE: L.PathOptions = {
+  color: '#ca8a04',
+  weight: 2,
+  fillColor: '#facc15',
+  fillOpacity: 0.42,
+};
+
+const WRONG_SECOND_STYLE: L.PathOptions = {
+  color: '#ea580c',
+  weight: 2,
+  fillColor: '#fb923c',
+  fillOpacity: 0.38,
+};
+
+const WRONG_THIRD_STYLE: L.PathOptions = {
   color: '#dc2626',
   weight: 2,
   fillColor: '#f87171',
-  fillOpacity: 0.38,
+  fillOpacity: 0.42,
 };
 
 const TARGET_STYLE: L.PathOptions = {
@@ -56,24 +77,49 @@ const APPROXIMATE_STYLE: L.PathOptions = {
 function getLayerStyle(
   settlementId: string,
   approximate: boolean,
-  revealedSettlementId?: string | null,
-  wrongGuessIds: Set<string> = new Set()
+  correctSettlementIds: Set<string>,
+  wrongGuessLevels: Map<string, number>
 ): L.PathOptions {
   const baseStyle =
-    settlementId === revealedSettlementId
+    correctSettlementIds.has(settlementId)
       ? TARGET_STYLE
-      : wrongGuessIds.has(settlementId)
-        ? WRONG_STYLE
+      : (wrongGuessLevels.get(settlementId) ?? 0) >= 3
+        ? WRONG_THIRD_STYLE
+        : (wrongGuessLevels.get(settlementId) ?? 0) === 2
+          ? WRONG_SECOND_STYLE
+          : (wrongGuessLevels.get(settlementId) ?? 0) === 1
+            ? WRONG_FIRST_STYLE
         : DEFAULT_STYLE;
 
   return approximate ? { ...baseStyle, ...APPROXIMATE_STYLE } : baseStyle;
+}
+
+function MapViewportTracker({
+  onViewportChange,
+}: {
+  onViewportChange: (mapViewport: MapViewport) => void;
+}) {
+  useMapEvents({
+    moveend(event) {
+      const center = event.target.getCenter();
+      onViewportChange({ center: [center.lat, center.lng], zoom: event.target.getZoom() });
+    },
+    zoomend(event) {
+      const center = event.target.getCenter();
+      onViewportChange({ center: [center.lat, center.lng], zoom: event.target.getZoom() });
+    },
+  });
+
+  return null;
 }
 
 export default function GameMap({
   settlements,
   mapStyle,
   onMapStyleChange,
-  revealedSettlementId,
+  mapViewport,
+  onMapViewportChange,
+  correctSettlementIds,
   wrongGuessIds,
   onSettlementSelect,
   interactive,
@@ -84,8 +130,13 @@ export default function GameMap({
     !hasLoadedBoundariesForSettlements(settlements)
   );
 
-  const wrongGuessSet = useMemo(
-    () => new Set(wrongGuessIds ?? []),
+  const correctSettlementSet = useMemo(
+    () => new Set(correctSettlementIds ?? []),
+    [correctSettlementIds]
+  );
+  const wrongGuessLevels = useMemo(
+    () =>
+      new Map((wrongGuessIds ?? []).map((settlementId, index) => [settlementId, Math.min(index + 1, 3)])),
     [wrongGuessIds]
   );
   const selectedMapStyle = useMemo(
@@ -177,8 +228,8 @@ export default function GameMap({
   return (
     <div className="game-map-shell">
       <MapContainer
-        center={ISRAEL_CENTER}
-        zoom={7}
+        center={mapViewport.center ?? ISRAEL_CENTER}
+        zoom={mapViewport.zoom ?? 7}
         minZoom={6}
         maxZoom={16}
         maxBounds={ISRAEL_BOUNDS}
@@ -186,6 +237,7 @@ export default function GameMap({
         style={{ height: '100%', width: '100%', borderRadius: '12px' }}
         className="game-map"
       >
+        <MapViewportTracker onViewportChange={onMapViewportChange} />
         <TileLayer
           key={`${selectedMapStyle.id}:${selectedMapStyle.tileUrl}`}
           {...tileLayerProps}
@@ -198,8 +250,8 @@ export default function GameMap({
             getLayerStyle(
               feature?.properties?.settlementId ?? '',
               feature?.properties?.approximate === true,
-              revealedSettlementId,
-              wrongGuessSet
+              correctSettlementSet,
+              wrongGuessLevels
             )
           }
           onEachFeature={(feature, layer) => {
@@ -227,8 +279,8 @@ export default function GameMap({
                 ...getLayerStyle(
                   settlementId,
                   approximate,
-                  revealedSettlementId,
-                  wrongGuessSet
+                  correctSettlementSet,
+                  wrongGuessLevels
                 ),
                 weight: 2.4,
                 fillOpacity: 0.24,
@@ -244,8 +296,8 @@ export default function GameMap({
                 getLayerStyle(
                   settlementId,
                   approximate,
-                  revealedSettlementId,
-                  wrongGuessSet
+                  correctSettlementSet,
+                  wrongGuessLevels
                 )
               );
             });
@@ -283,16 +335,28 @@ export default function GameMap({
           <span className="map-legend-swatch available" />
           <span>יישוב לבחירה</span>
         </div>
-        {wrongGuessSet.size > 0 && (
+        {(wrongGuessIds?.length ?? 0) >= 1 && (
           <div className="map-legend-item">
-            <span className="map-legend-swatch wrong" />
-            <span>ניחוש שגוי</span>
+            <span className="map-legend-swatch wrong-first" />
+            <span>פספוס ראשון</span>
           </div>
         )}
-        {revealedSettlementId && (
+        {(wrongGuessIds?.length ?? 0) >= 2 && (
+          <div className="map-legend-item">
+            <span className="map-legend-swatch wrong-second" />
+            <span>פספוס שני</span>
+          </div>
+        )}
+        {(wrongGuessIds?.length ?? 0) >= 3 && (
+          <div className="map-legend-item">
+            <span className="map-legend-swatch wrong-third" />
+            <span>פספוס שלישי ומעלה</span>
+          </div>
+        )}
+        {correctSettlementSet.size > 0 && (
           <div className="map-legend-item">
             <span className="map-legend-swatch correct" />
-            <span>התשובה הנכונה</span>
+            <span>יישוב שנפתר נכון</span>
           </div>
         )}
         {hasApproximateFeatures && (

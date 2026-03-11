@@ -40,6 +40,11 @@ export interface MapStyle {
   maxZoom?: number;
 }
 
+export interface MapViewport {
+  center: [number, number];
+  zoom: number;
+}
+
 export type SettlementBoundaryGeometry = Geometry;
 
 export interface SettlementBoundary {
