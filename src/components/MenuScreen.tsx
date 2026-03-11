@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { regions } from '../data/regions';
 import type { GameConfig, GameMode } from '../types';
 import { settlements } from '../data/settlements';
+import { getSettlementDistrictId } from '../utils/districts';
 import { usesApproximateBoundary } from '../utils/settlementBoundaries';
 
 interface MenuScreenProps {
@@ -39,7 +40,7 @@ export default function MenuScreen({
     config.selectedRegions.length === 0
       ? exactBoundarySettlements.length
       : exactBoundarySettlements.filter((settlement) =>
-          config.selectedRegions.includes(settlement.region)
+          config.selectedRegions.includes(getSettlementDistrictId(settlement))
         ).length;
 
   const canStart = availableCount >= 1;
@@ -54,9 +55,9 @@ export default function MenuScreen({
           </p>
         </div>
 
-        {/* Region selection */}
+        {/* District selection */}
         <div className="menu-section">
-          <h2 className="section-title">בחר אזורים</h2>
+          <h2 className="section-title">בחר מחוזות</h2>
           <p className="region-info">מוצגים רק יישובים עם גבולות מדויקים במפה</p>
 
           <button
@@ -72,14 +73,14 @@ export default function MenuScreen({
             className="region-expand-btn"
             onClick={() => setShowRegionPicker(!showRegionPicker)}
           >
-            {showRegionPicker ? '▲ הסתר אזורים' : '▼ בחר אזורים ספציפיים'}
+            {showRegionPicker ? '▲ הסתר מחוזות' : '▼ בחר מחוזות ספציפיים'}
           </button>
 
           {showRegionPicker && (
             <div className="region-grid">
               {regions.map((region) => {
                 const count = exactBoundarySettlements.filter(
-                  (settlement) => settlement.region === region.id
+                  (settlement) => getSettlementDistrictId(settlement) === region.id
                 ).length;
                 const isSelected = config.selectedRegions.includes(region.id);
                 return (

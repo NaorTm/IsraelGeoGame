@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo } from 'react';
 import type { Settlement, RoundResult, GameConfig, GamePhase } from '../types';
 import { settlements } from '../data/settlements';
 import { calculateAttemptScore, shuffleArray } from '../utils/geo';
+import { getSettlementDistrictId } from '../utils/districts';
 import { usesApproximateBoundary } from '../utils/settlementBoundaries';
 
 interface GameState {
@@ -39,7 +40,7 @@ export function useGame() {
       return exactBoundarySettlements;
     }
     return exactBoundarySettlements.filter((settlement) =>
-      state.config.selectedRegions.includes(settlement.region)
+      state.config.selectedRegions.includes(getSettlementDistrictId(settlement))
     );
   }, [exactBoundarySettlements, state.config.selectedRegions]);
 

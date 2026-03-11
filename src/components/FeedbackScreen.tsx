@@ -2,6 +2,7 @@ import type { RoundResult } from '../types';
 import type { Settlement } from '../types';
 import { formatAttempts } from '../utils/geo';
 import { regions } from '../data/regions';
+import { getSettlementDistrictId } from '../utils/districts';
 import GameMap from './GameMap';
 
 interface FeedbackScreenProps {
@@ -34,7 +35,7 @@ export default function FeedbackScreen({
 }: FeedbackScreenProps) {
   const scoreLabel = getScoreLabel(result.score);
   const regionName =
-    regions.find((r) => r.id === result.settlement.region)?.name_he || '';
+    regions.find((r) => r.id === getSettlementDistrictId(result.settlement))?.name_he || '';
 
   const isLastRound = mode === 'rounds' && currentRound >= totalRounds;
 
@@ -53,7 +54,7 @@ export default function FeedbackScreen({
             </span>
           </div>
           <div className="detail-row">
-            <span className="detail-label">אזור:</span>
+            <span className="detail-label">מחוז:</span>
             <span className="detail-value">{regionName}</span>
           </div>
           <div className="detail-row">
