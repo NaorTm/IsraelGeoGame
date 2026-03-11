@@ -31,6 +31,7 @@ export default function App() {
 
       {game.phase === 'playing' && game.currentSettlement && (
         <PlayingScreen
+          key={`${game.currentRound}-${game.currentSettlement.id}-${game.config.timeLimitSeconds}`}
           availableSettlements={game.filteredSettlements}
           settlement={game.currentSettlement}
           currentRound={game.currentRound}
@@ -56,8 +57,6 @@ export default function App() {
         <FeedbackScreen
           availableSettlements={game.filteredSettlements}
           result={game.roundResults[game.roundResults.length - 1]}
-          currentRound={game.currentRound}
-          totalRounds={game.totalRounds}
           totalScore={game.totalScore}
           mode={game.config.mode}
           mapStyle={game.config.mapStyle}

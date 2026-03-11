@@ -57,6 +57,24 @@ npm run preview  # Preview the production build locally
 
 The output is placed in the `dist/` folder and can be deployed to any static hosting service.
 
+## Deploy to GitHub Pages
+
+This repository includes a GitHub Actions workflow that lints, builds, and deploys the app to GitHub Pages on every push to `main`.
+
+To enable it:
+
+1. Open the repository settings on GitHub.
+2. Go to **Pages**.
+3. Set **Source** to **GitHub Actions**.
+
+After that, each push to `main` will publish the contents of `dist/`.
+
+The site will be served from:
+
+```text
+https://naortm.github.io/IsraelGeoGame/
+```
+
 ## Project Structure
 
 ```

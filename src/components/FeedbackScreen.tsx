@@ -8,8 +8,6 @@ import GameMap from './GameMap';
 interface FeedbackScreenProps {
   availableSettlements: Settlement[];
   result: RoundResult;
-  currentRound: number;
-  totalRounds: number;
   totalScore: number;
   mode: GameMode;
   mapStyle: MapStyleId;
@@ -35,8 +33,6 @@ function getScoreLabel(result: RoundResult): { text: string; emoji: string } {
 export default function FeedbackScreen({
   availableSettlements,
   result,
-  currentRound,
-  totalRounds,
   totalScore,
   mode,
   mapStyle,

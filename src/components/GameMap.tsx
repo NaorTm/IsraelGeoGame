@@ -126,9 +126,7 @@ export default function GameMap({
 }: GameMapProps) {
   const [boundaryCollection, setBoundaryCollection] =
     useState<SettlementBoundaryCollection>({});
-  const [isLoadingBoundaries, setIsLoadingBoundaries] = useState(() =>
-    !hasLoadedBoundariesForSettlements(settlements)
-  );
+  const isLoadingBoundaries = !hasLoadedBoundariesForSettlements(settlements);
 
   const correctSettlementSet = useMemo(
     () => new Set(correctSettlementIds ?? []),
@@ -168,8 +166,6 @@ export default function GameMap({
   useEffect(() => {
     let isDisposed = false;
 
-    setIsLoadingBoundaries(!hasLoadedBoundariesForSettlements(settlements));
-
     void loadBoundaryCollectionsForSettlements(settlements).then((loadedBoundaries) => {
       if (isDisposed) {
         return;
@@ -179,7 +175,6 @@ export default function GameMap({
         ...previous,
         ...loadedBoundaries,
       }));
-      setIsLoadingBoundaries(false);
     });
 
     return () => {

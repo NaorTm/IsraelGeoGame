@@ -55,18 +55,11 @@ export default function PlayingScreen({
   const currentPoints = calculateAttemptScore(wrongGuessIds.length);
 
   useEffect(() => {
-    setWrongGuessIds([]);
-    setTimeRemaining(timeLimitSeconds);
-    setRoundResolved(false);
-  }, [settlement.id, timeLimitSeconds]);
-
-  useEffect(() => {
     if (mode !== 'time_attack' || roundResolved) {
       return;
     }
 
     if (timeRemaining <= 0) {
-      setRoundResolved(true);
       onSubmitGuess({
         wrongGuessIds,
         timeRemainingSeconds: 0,
