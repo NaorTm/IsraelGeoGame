@@ -28,6 +28,18 @@ export interface Region {
   description_en: string;
 }
 
+export type MapStyleId = 'voyager' | 'streets' | 'topo' | 'satellite';
+
+export interface MapStyle {
+  id: MapStyleId;
+  name_he: string;
+  name_en: string;
+  tileUrl: string;
+  attribution: string;
+  subdomains?: string;
+  maxZoom?: number;
+}
+
 export type SettlementBoundaryGeometry = Geometry;
 
 export interface SettlementBoundary {
@@ -57,6 +69,7 @@ export interface GameConfig {
   selectedRegions: string[];
   roundCount: number;
   mode: GameMode;
+  mapStyle: MapStyleId;
 }
 
 export type GamePhase = 'menu' | 'playing' | 'feedback' | 'summary';

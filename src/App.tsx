@@ -26,6 +26,8 @@ export default function App() {
           totalRounds={game.totalRounds}
           totalScore={game.totalScore}
           mode={game.config.mode}
+          mapStyle={game.config.mapStyle}
+          onMapStyleChange={(mapStyle) => game.updateConfig({ mapStyle })}
           onSubmitGuess={game.submitGuess}
           onEndGame={game.endGame}
         />
@@ -39,6 +41,8 @@ export default function App() {
           totalRounds={game.totalRounds}
           totalScore={game.totalScore}
           mode={game.config.mode}
+          mapStyle={game.config.mapStyle}
+          onMapStyleChange={(mapStyle) => game.updateConfig({ mapStyle })}
           onNextRound={game.nextRound}
           onEndGame={game.endGame}
         />

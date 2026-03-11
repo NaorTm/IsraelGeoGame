@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import { mapStyles } from '../data/mapStyles';
 import { regions } from '../data/regions';
-import type { GameConfig, GameMode } from '../types';
+import type { GameConfig, GameMode, MapStyleId } from '../types';
 import { settlements } from '../data/settlements';
 import { getSettlementDistrictId } from '../utils/districts';
 import { usesApproximateBoundary } from '../utils/settlementBoundaries';
@@ -20,6 +21,10 @@ export default function MenuScreen({
   const exactBoundarySettlements = settlements.filter(
     (settlement) => !usesApproximateBoundary(settlement)
   );
+
+  const updateMapStyle = (mapStyle: MapStyleId) => {
+    onUpdateConfig({ mapStyle });
+  };
 
   const toggleRegion = (regionId: string) => {
     const current = config.selectedRegions;
@@ -102,7 +107,24 @@ export default function MenuScreen({
           )}
         </div>
 
-        {/* Game mode */}
+        <div className="menu-section">
+          <h2 className="section-title">סגנון מפה</h2>
+          <div className="map-style-grid">
+            {mapStyles.map((style) => (
+              <button
+                key={style.id}
+                className={`map-style-chip ${
+                  config.mapStyle === style.id ? 'selected' : ''
+                }`}
+                onClick={() => updateMapStyle(style.id)}
+              >
+                <span className="map-style-name">{style.name_he}</span>
+                <span className="map-style-name-en">{style.name_en}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="menu-section">
           <h2 className="section-title">מצב משחק</h2>
           <div className="mode-buttons">

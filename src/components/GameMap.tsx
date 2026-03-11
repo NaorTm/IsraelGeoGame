@@ -3,7 +3,8 @@ import type { FeatureCollection } from 'geojson';
 import { MapContainer, TileLayer, GeoJSON } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import type { Settlement, SettlementBoundaryCollection } from '../types';
+import { mapStyles } from '../data/mapStyles';
+import type { MapStyleId, Settlement, SettlementBoundaryCollection } from '../types';
 import {
   getSettlementFeature,
   hasLoadedBoundariesForSettlements,
@@ -17,14 +18,10 @@ const ISRAEL_BOUNDS: L.LatLngBoundsExpression = [
   [33.5, 36.0],
 ];
 
-const TILE_LAYER_URL =
-  'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png';
-
-const TILE_LAYER_ATTRIBUTION =
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
-
 interface GameMapProps {
   settlements: Settlement[];
+  mapStyle: MapStyleId;
+  onMapStyleChange: (mapStyle: MapStyleId) => void;
   revealedSettlementId?: string | null;
   wrongGuessIds?: string[];
   onSettlementSelect?: (settlementId: string) => void;
@@ -74,6 +71,8 @@ function getLayerStyle(
 
 export default function GameMap({
   settlements,
+  mapStyle,
+  onMapStyleChange,
   revealedSettlementId,
   wrongGuessIds,
   onSettlementSelect,
@@ -89,6 +88,31 @@ export default function GameMap({
     () => new Set(wrongGuessIds ?? []),
     [wrongGuessIds]
   );
+  const selectedMapStyle = useMemo(
+    () => mapStyles.find((style) => style.id === mapStyle) ?? mapStyles[0],
+    [mapStyle]
+  );
+  const tileLayerProps = useMemo(() => {
+    const props: {
+      attribution: string;
+      url: string;
+      subdomains?: string;
+      maxZoom?: number;
+    } = {
+      attribution: selectedMapStyle.attribution,
+      url: selectedMapStyle.tileUrl,
+    };
+
+    if (selectedMapStyle.subdomains) {
+      props.subdomains = selectedMapStyle.subdomains;
+    }
+
+    if (selectedMapStyle.maxZoom !== undefined) {
+      props.maxZoom = selectedMapStyle.maxZoom;
+    }
+
+    return props;
+  }, [selectedMapStyle]);
 
   const settlementNameById = useMemo(
     () =>
@@ -163,9 +187,8 @@ export default function GameMap({
         className="game-map"
       >
         <TileLayer
-          attribution={TILE_LAYER_ATTRIBUTION}
-          url={TILE_LAYER_URL}
-          subdomains="abcd"
+          key={`${selectedMapStyle.id}:${selectedMapStyle.tileUrl}`}
+          {...tileLayerProps}
         />
 
         <GeoJSON
@@ -235,6 +258,24 @@ export default function GameMap({
           }}
         />
       </MapContainer>
+
+      <div className="map-style-panel">
+        <label className="map-style-label" htmlFor="map-style-select">
+          סגנון מפה
+        </label>
+        <select
+          id="map-style-select"
+          className="map-style-select"
+          value={mapStyle}
+          onChange={(event) => onMapStyleChange(event.target.value as MapStyleId)}
+        >
+          {mapStyles.map((style) => (
+            <option key={style.id} value={style.id}>
+              {style.name_he}
+            </option>
+          ))}
+        </select>
+      </div>
 
       <div className="map-legend">
         <div className="map-legend-title">מקרא</div>

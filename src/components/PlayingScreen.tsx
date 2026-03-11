@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Settlement } from '../types';
+import type { MapStyleId, Settlement } from '../types';
 import GameMap from './GameMap';
 import { calculateAttemptScore } from '../utils/geo';
 
@@ -10,6 +10,8 @@ interface PlayingScreenProps {
   totalRounds: number;
   totalScore: number;
   mode: string;
+  mapStyle: MapStyleId;
+  onMapStyleChange: (mapStyle: MapStyleId) => void;
   onSubmitGuess: (wrongGuessIds: string[]) => void;
   onEndGame: () => void;
 }
@@ -21,6 +23,8 @@ export default function PlayingScreen({
   totalRounds,
   totalScore,
   mode,
+  mapStyle,
+  onMapStyleChange,
   onSubmitGuess,
   onEndGame,
 }: PlayingScreenProps) {
@@ -92,6 +96,8 @@ export default function PlayingScreen({
       <div className="map-container">
         <GameMap
           settlements={availableSettlements}
+          mapStyle={mapStyle}
+          onMapStyleChange={onMapStyleChange}
           wrongGuessIds={wrongGuessIds}
           onSettlementSelect={handleSettlementClick}
           interactive={true}

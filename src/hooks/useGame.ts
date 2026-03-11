@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo } from 'react';
 import type { Settlement, RoundResult, GameConfig, GamePhase } from '../types';
+import { defaultMapStyleId } from '../data/mapStyles';
 import { settlements } from '../data/settlements';
 import { calculateAttemptScore, shuffleArray } from '../utils/geo';
 import { getSettlementDistrictId } from '../utils/districts';
@@ -18,6 +19,7 @@ const defaultConfig: GameConfig = {
   selectedRegions: [],
   roundCount: 10,
   mode: 'rounds',
+  mapStyle: defaultMapStyleId,
 };
 
 export function useGame() {
