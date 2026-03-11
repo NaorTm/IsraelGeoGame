@@ -126,9 +126,9 @@ export default function GameMap({
   const featureCollection = useMemo(
     () => ({
       type: 'FeatureCollection',
-      features: settlements.map((settlement) =>
-        getSettlementFeature(settlement, boundaryCollection)
-      ),
+      features: settlements
+        .map((settlement) => getSettlementFeature(settlement, boundaryCollection))
+        .filter((feature): feature is NonNullable<typeof feature> => feature !== null),
     }) as FeatureCollection,
     [boundaryCollection, settlements]
   );
@@ -138,6 +138,15 @@ export default function GameMap({
       featureCollection.features.some(
         (feature) => feature.properties?.approximate === true
       ),
+    [featureCollection]
+  );
+
+  const featureCollectionKey = useMemo(
+    () =>
+      featureCollection.features
+        .map((feature) => feature.properties?.settlementId ?? '')
+        .sort()
+        .join('|'),
     [featureCollection]
   );
 
@@ -160,6 +169,7 @@ export default function GameMap({
         />
 
         <GeoJSON
+          key={featureCollectionKey}
           data={featureCollection}
           style={(feature) =>
             getLayerStyle(

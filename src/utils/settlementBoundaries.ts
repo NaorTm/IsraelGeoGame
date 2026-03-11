@@ -81,7 +81,7 @@ function isBoundaryRegionId(regionId: string): regionId is BoundaryRegionId {
 function createRenderableBoundary(
   settlement: Settlement,
   boundary?: SettlementBoundary
-): RenderableSettlementBoundary {
+): RenderableSettlementBoundary | null {
   if (
     boundary &&
     boundary.distanceKm <= MAX_MATCH_DISTANCE_KM &&
@@ -91,6 +91,10 @@ function createRenderableBoundary(
       ...boundary,
       geojson: boundary.geojson,
     };
+  }
+
+  if (!approximateSettlementIdSet.has(settlement.id)) {
+    return null;
   }
 
   return {
@@ -159,18 +163,19 @@ export function hasLoadedBoundariesForSettlements(settlements: Settlement[]): bo
 export function getSettlementBoundary(
   settlement: Settlement,
   boundaryCollection?: SettlementBoundaryCollection
-): RenderableSettlementBoundary {
-  return createRenderableBoundary(
-    settlement,
-    boundaryCollection?.[settlement.id]
-  );
+): RenderableSettlementBoundary | null {
+  return createRenderableBoundary(settlement, boundaryCollection?.[settlement.id]);
 }
 
 export function getSettlementFeature(
   settlement: Settlement,
   boundaryCollection?: SettlementBoundaryCollection
-): SettlementMapFeature {
+): SettlementMapFeature | null {
   const boundary = getSettlementBoundary(settlement, boundaryCollection);
+
+  if (!boundary) {
+    return null;
+  }
 
   return {
     type: 'Feature',

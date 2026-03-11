@@ -9,28 +9,114 @@ const MAX_NOMINATIM_MATCH_DISTANCE_KM = 12;
 const OVERPASS_SEARCH_RADIUS_METERS = 8000;
 const REQUEST_DELAY_MS = Number(process.env.BOUNDARY_REQUEST_DELAY_MS ?? 1100);
 const MAX_REQUEST_RETRIES = Number(process.env.BOUNDARY_MAX_RETRIES ?? 3);
+const SKIP_REMOTE_LOOKUPS = ['1', 'true', 'yes'].includes(
+  String(process.env.BOUNDARY_SKIP_REMOTE_LOOKUPS ?? '').toLowerCase()
+);
 const OVERPASS_ENDPOINTS = [
   'https://overpass-api.de/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter',
 ];
+const OREF_SEGMENTS_URL =
+  'https://dist-android.meser-hadash.org.il/smart-dist/services/anonymous/segments/android?instance=1544803905&locale=iw_IL';
+const OREF_POLYGON_URL =
+  'https://services.meser-hadash.org.il/smart-dist/services/anonymous/polygon/id/android?instance=1544803905&id=';
+const TZEVAADOM_CITIES_URL = 'https://www.tzevaadom.co.il/static/cities.json?v=5';
+const TZEVAADOM_POLYGONS_URL = 'https://www.tzevaadom.co.il/static/polygons.json?v=3';
 const TARGET_SETTLEMENT_IDS = new Set(
   (process.env.BOUNDARY_IDS ?? '')
     .split(',')
     .map((value) => value.trim())
     .filter(Boolean)
 );
+const WAY_OVERRIDES = {
+  abu_ruqayyeq: 92880152,
+};
 const RELATION_OVERRIDES = {
   alfei_menashe: 11993345,
   ariel: 10011903,
 };
 
+const SEARCH_COORDINATE_OVERRIDES = {
+  arsuf: { lat: 32.209475, lng: 34.81757 },
+  bat_hadar: { lat: 31.645321, lng: 34.596329 },
+  hodayot: { lat: 32.788542, lng: 35.4353 },
+  karme_qatif: { lat: 31.537243, lng: 34.912677 },
+  kefar_zoharim: { lat: 31.621718, lng: 34.924752 },
+  khawaled: { lat: 32.770093, lng: 35.136336 },
+  maale_iron: { lat: 32.547887, lng: 35.171902 },
+  sderot_south: { lat: 32.262046, lng: 34.969692 },
+};
+
 const NAME_OVERRIDES = {
   acre: ['Acre, Israel', 'Akko, Israel'],
+  arsuf: ['Arsuf, Israel', 'ארסוף, ישראל'],
+  bat_hadar: ['Bat Hadar, Israel', 'בת הדר, ישראל'],
   nazareth_illit: ['Nof HaGalil, Israel'],
   modiin: ["Modi'in-Maccabim-Re'ut, Israel"],
+  ben_shemen_k_noar: ['Ben Shemen, Israel', 'בן שמן, ישראל'],
+  ben_shemen_moshav: ['Ben Shemen, Israel', 'בן שמן, ישראל'],
   beersheba: ['Beersheba, Israel', 'Beer Sheva, Israel'],
+  even_yizhaq_galed: ["Gal'ed, Israel", 'גלעד, ישראל'],
+  haluz: ['Har Halutz, Israel', 'הר חלוץ, ישראל'],
+  hamam: ['Wadi al-Hamam, Israel', 'Wadi Hamam, Israel', 'ואדי אל חמאם, ישראל'],
+  hodayot: ['Hodayot, Israel', 'הודיות, ישראל'],
+  hujeirat_dahra: ["Hujeirat, Israel", "חוג'ייראת, ישראל"],
+  kaabiyye_tabbash_ha: ["Ka'abiyye Tabbash, Israel", 'כעביה טבאש, ישראל'],
+  kefar_hasidim_alef: ['Kfar Hasidim, Israel', 'כפר חסידים, ישראל'],
+  kefar_hasidim_bet: ['Kfar Hasidim, Israel', 'כפר חסידים, ישראל'],
+  kefar_rosh_haniqra: ['Rosh HaNikra, Israel', 'ראש הנקרה, ישראל'],
+  kefar_rozenwald_zar: ["Zare'it, Israel", 'זרעית, ישראל'],
+  khawaled_986: ['Khawaled Village, Israel', "כפר ח'וואלד, ישראל"],
+  kinneret_qevuza: ['Kvutzat Kinneret, Israel', 'כינרת קבוצה, ישראל'],
+  maale_iron: ["Ma'ale Iron, Israel", 'מעלה עירון, ישראל'],
+  mayan_barukh: ["Ma'ayan Baruch, Israel", 'מעיין ברוך, ישראל'],
+  nizzana_qehilat_hin: ['Nitzana, Israel', 'ניצנה, ישראל'],
+  abu_juweiid: ["Abu Juwei'id, Israel", "אבו ג'ווייעד, ישראל"],
+  abu_sureihan: ['Abu Sureihan, Israel', 'אבו סריחאן, ישראל'],
+  abu_ruqayyeq: ['Abu Ruqaiq, Israel', 'אבו רוקייק, ישראל'],
+  hawashla: ['Hawashla, Israel', 'הוואשלה, ישראל'],
+  nasasra: ['Nasasra, Israel', 'נצאצרה, ישראל'],
+  qabboa: ["Qabbo'a, Israel", 'קבועה, ישראל'],
+  qawain: ["Qawa'in, Israel", 'קוואעין, ישראל'],
+  qudeirat_as_sani: ['Qudeirat al Sani, Israel', 'קודייראת א צאנע, ישראל'],
+  peqiin_hadasha: ["Peqi'in Hadasha, Israel", 'פקיעין החדשה, ישראל', "Peqi'in, Israel", 'פקיעין, ישראל'],
   sderot_south: ['Azriel, Israel'],
+  tarabin_as_sani: ['Tarabin al Sani, Israel', 'תראבין א צאנע, ישראל'],
+  tene: ['Tene Omarim, Israel', 'טנא עומרים, ישראל'],
+  zabarga: ['Zabarga, Israel', 'זבארגה, ישראל'],
 };
+
+const OREF_NAME_OVERRIDES = {
+  abu_qureinat: ['אבו קרינאת'],
+  asefar: ['מיצד'],
+  berakha: ['הר ברכה'],
+  bet_yattir: ['בית יתיר'],
+  en_harod_ihud: ['עין חרוד, תל יוסף'],
+  en_harod_meuhad: ['עין חרוד, תל יוסף'],
+  en_karem_b_s_haqlai: ['פנימיית עין כרם'],
+  gat_qibbuz: ['גת'],
+  ginnegar: ['גניגר'],
+  haggai: ['בית חג"י'],
+  hazor_ashdod: ['חצור'],
+  hazorea: ['יקנעם המושבה והזורע'],
+  hever: ['מרכז חבר'],
+  hefzi_bah: ['בית אלפא וחפציבה'],
+  khawaled: ["כפר ח'וואלד"],
+  lohame_hagetaot: ['לוחמי הגטאות'],
+  mayan_barukh: ['מעיין ברוך'],
+  naama: ['נעמה'],
+  pene_hever: ['מעלה חבר'],
+  qiryat_netafim: ['קריית נטפים'],
+  sawaid_humayra: ['סואעד חמירה'],
+  tarabin_as_sani_1346: ['תארבין'],
+  yedida: ['כפר הנוער קריית יערים'],
+  yuval: ['כפר יובל'],
+  zofiyya: ['מעון צופיה'],
+};
+
+let tzevaAdomSourcePromise = null;
+let orefSourcePromise = null;
+const orefPolygonPromiseBySegmentId = new Map();
 
 function parseSettlements(source) {
   const matches = source.matchAll(
@@ -117,6 +203,34 @@ function isPolygonalGeometry(geojson) {
   return geojson?.type === 'Polygon' || geojson?.type === 'MultiPolygon';
 }
 
+function normalizeLookupKey(value) {
+  return String(value ?? '')
+    .normalize('NFKD')
+    .replace(/["'`׳״()\-.,/\\]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+function stripLookupQuerySuffix(value) {
+  return String(value ?? '')
+    .replace(/,\s*Israel$/i, '')
+    .replace(/,\s*ישראל$/i, '')
+    .trim();
+}
+
+function getLookupNames(settlement) {
+  return [
+    settlement.name_he,
+    settlement.name_en,
+    ...settlement.aliases,
+    ...(NAME_OVERRIDES[settlement.id] ?? []).map(stripLookupQuerySuffix),
+  ]
+    .map((name) => name.trim())
+    .filter(Boolean)
+    .filter((value, index, values) => values.indexOf(value) === index);
+}
+
 function isClosedRing(coordinates) {
   if (coordinates.length < 4) {
     return false;
@@ -201,11 +315,7 @@ function compareBoundaryCandidates(candidateA, candidateB) {
 }
 
 function buildOverpassNames(settlement) {
-  const rawNames = [settlement.name_he, settlement.name_en, ...settlement.aliases]
-    .map((name) => name.trim())
-    .filter(Boolean);
-
-  return [...new Set(rawNames)];
+  return getLookupNames(settlement);
 }
 
 function escapeOverpassString(value) {
@@ -245,6 +355,281 @@ function closeRing(coordinates) {
   }
 
   return coordinates;
+}
+
+function geojsonFromLatLngPairs(coordinates) {
+  if (!Array.isArray(coordinates) || coordinates.length < 3) {
+    return null;
+  }
+
+  const ring = coordinates
+    .filter(
+      (point) =>
+        Array.isArray(point) &&
+        point.length >= 2 &&
+        Number.isFinite(Number(point[0])) &&
+        Number.isFinite(Number(point[1]))
+    )
+    .map(([lat, lng]) => [Number(lng), Number(lat)]);
+
+  closeRing(ring);
+
+  return ring.length >= 4
+    ? {
+        type: 'Polygon',
+        coordinates: [ring],
+      }
+    : null;
+}
+
+function geojsonFromOrefPolygonPointLists(polygonPointLists) {
+  if (!Array.isArray(polygonPointLists) || polygonPointLists.length === 0) {
+    return null;
+  }
+
+  const polygons = polygonPointLists
+    .map((coordinates) => {
+      const ring = coordinates
+        .filter(
+          (point) =>
+            Array.isArray(point) &&
+            point.length >= 2 &&
+            Number.isFinite(Number(point[0])) &&
+            Number.isFinite(Number(point[1]))
+        )
+        .map(([lat, lng]) => [Number(lng), Number(lat)]);
+
+      closeRing(ring);
+
+      return ring.length >= 4 ? [ring] : null;
+    })
+    .filter(Boolean);
+
+  if (polygons.length === 0) {
+    return null;
+  }
+
+  return polygons.length === 1
+    ? { type: 'Polygon', coordinates: polygons[0] }
+    : { type: 'MultiPolygon', coordinates: polygons };
+}
+
+async function loadTzevaAdomSource() {
+  if (!tzevaAdomSourcePromise) {
+    tzevaAdomSourcePromise = Promise.all([
+      fetchJsonWithRetry(
+        TZEVAADOM_CITIES_URL,
+        {
+          headers: { 'User-Agent': USER_AGENT },
+        },
+        'TzevaAdom cities'
+      ),
+      fetchJsonWithRetry(
+        TZEVAADOM_POLYGONS_URL,
+        {
+          headers: { 'User-Agent': USER_AGENT },
+        },
+        'TzevaAdom polygons'
+      ),
+    ]).then(([citiesPayload, polygonsPayload]) => {
+      const cityIdByLookupKey = new Map();
+      const citiesById = new Map();
+
+      for (const [name, city] of Object.entries(citiesPayload.cities ?? {})) {
+        const cityId = String(city.id);
+        citiesById.set(cityId, {
+          ...city,
+          name,
+        });
+
+        const lookupValues = [
+          name,
+          city.he,
+          city.en,
+          city.ru,
+          city.ar,
+          city.es,
+        ];
+
+        for (const lookupValue of lookupValues) {
+          const key = normalizeLookupKey(lookupValue);
+
+          if (key && !cityIdByLookupKey.has(key)) {
+            cityIdByLookupKey.set(key, cityId);
+          }
+        }
+      }
+
+      return {
+        citiesById,
+        cityIdByLookupKey,
+        polygonsById: polygonsPayload,
+      };
+    });
+  }
+
+  return tzevaAdomSourcePromise;
+}
+
+async function loadOrefSource() {
+  if (!orefSourcePromise) {
+    orefSourcePromise = fetchJsonWithRetry(
+      OREF_SEGMENTS_URL,
+      {
+        headers: { 'User-Agent': USER_AGENT },
+      },
+      'OREF segments'
+    ).then((payload) => {
+      const segmentsById = new Map();
+      const segmentIdsByLookupKey = new Map();
+
+      for (const segment of Object.values(payload.segments ?? {})) {
+        const segmentId = String(segment.id);
+        segmentsById.set(segmentId, segment);
+
+        const lookupKey = normalizeLookupKey(segment.name);
+
+        if (!lookupKey) {
+          continue;
+        }
+
+        if (!segmentIdsByLookupKey.has(lookupKey)) {
+          segmentIdsByLookupKey.set(lookupKey, []);
+        }
+
+        segmentIdsByLookupKey.get(lookupKey).push(segmentId);
+      }
+
+      return {
+        segmentsById,
+        segmentIdsByLookupKey,
+      };
+    });
+  }
+
+  return orefSourcePromise;
+}
+
+function getOrefLookupNames(settlement) {
+  return [
+    settlement.name_he,
+    ...(settlement.aliases ?? []),
+    ...(OREF_NAME_OVERRIDES[settlement.id] ?? []),
+  ]
+    .map((name) => name.trim())
+    .filter(Boolean)
+    .filter((value, index, values) => values.indexOf(value) === index);
+}
+
+async function fetchOrefPolygon(segmentId) {
+  const cacheKey = String(segmentId);
+
+  if (!orefPolygonPromiseBySegmentId.has(cacheKey)) {
+    orefPolygonPromiseBySegmentId.set(
+      cacheKey,
+      fetchJsonWithRetry(
+        `${OREF_POLYGON_URL}${cacheKey}`,
+        {
+          headers: { 'User-Agent': USER_AGENT },
+        },
+        `OREF polygon ${cacheKey}`
+      )
+    );
+  }
+
+  return orefPolygonPromiseBySegmentId.get(cacheKey);
+}
+
+async function fetchOrefCandidate(settlement) {
+  const source = await loadOrefSource();
+  const lookupKeys = getOrefLookupNames(settlement)
+    .map(normalizeLookupKey)
+    .filter(Boolean);
+  const candidateSegmentIds = [...new Set(
+    lookupKeys.flatMap(
+      (lookupKey) => source.segmentIdsByLookupKey.get(lookupKey) ?? []
+    )
+  )];
+  const candidates = (
+    await Promise.all(
+      candidateSegmentIds.map(async (segmentId) => {
+        const segment = source.segmentsById.get(segmentId);
+
+        if (!segment) {
+          return null;
+        }
+
+        const polygonPayload = await fetchOrefPolygon(segmentId);
+        const geojson = geojsonFromOrefPolygonPointLists(
+          polygonPayload?.polygonPointList
+        );
+
+        if (!geojson) {
+          return null;
+        }
+
+        const centroid = centroidFromGeoJSON(geojson);
+        const distance = centroid
+          ? distanceKm(settlement.lat, settlement.lng, centroid.lat, centroid.lng)
+          : Number.POSITIVE_INFINITY;
+
+        return {
+          candidate: {
+            geojson,
+            display_name: `OREF / ${segment.name}`,
+          },
+          centroid,
+          distance,
+        };
+      })
+    )
+  )
+    .filter(Boolean)
+    .sort(compareBoundaryCandidates);
+
+  return candidates[0] ?? null;
+}
+
+async function fetchTzevaAdomCandidate(settlement) {
+  const source = await loadTzevaAdomSource();
+  const lookupKeys = getLookupNames(settlement)
+    .map(normalizeLookupKey)
+    .filter(Boolean);
+  const candidateIds = [...new Set(
+    lookupKeys
+      .map((lookupKey) => source.cityIdByLookupKey.get(lookupKey))
+      .filter(Boolean)
+  )];
+  const candidates = candidateIds
+    .map((cityId) => {
+      const polygonCoordinates = source.polygonsById?.[cityId];
+      const geojson = geojsonFromLatLngPairs(polygonCoordinates);
+
+      if (!geojson) {
+        return null;
+      }
+
+      const centroid = centroidFromGeoJSON(geojson);
+      const distance = centroid
+        ? distanceKm(settlement.lat, settlement.lng, centroid.lat, centroid.lng)
+        : Number.POSITIVE_INFINITY;
+      const sourceCity = source.citiesById.get(cityId);
+
+      return {
+        candidate: {
+          geojson,
+          display_name: sourceCity?.he
+            ? `TzevaAdom / ${sourceCity.he}`
+            : `TzevaAdom / ${cityId}`,
+        },
+        centroid,
+        distance,
+      };
+    })
+    .filter(Boolean)
+    .sort(compareBoundaryCandidates);
+
+  return candidates[0] ?? null;
 }
 
 function buildWayCoordinates(way, nodeMap) {
@@ -352,6 +737,33 @@ function geojsonFromOsmRelation(relationId, elements) {
   return rings.length === 1
     ? { type: 'Polygon', coordinates: [rings[0]] }
     : { type: 'MultiPolygon', coordinates: rings.map((ring) => [ring]) };
+}
+
+function geojsonFromOsmWay(wayId, elements) {
+  const way = elements.find(
+    (element) => element.type === 'way' && element.id === wayId
+  );
+
+  if (!way) {
+    return null;
+  }
+
+  const nodeMap = new Map(
+    elements
+      .filter((element) => element.type === 'node')
+      .map((element) => [element.id, element])
+  );
+  const coordinates = buildWayCoordinates(way, nodeMap);
+
+  if (!coordinates) {
+    return null;
+  }
+
+  closeRing(coordinates);
+
+  return coordinates.length >= 4
+    ? { type: 'Polygon', coordinates: [coordinates] }
+    : null;
 }
 
 function isUsefulOverpassElement(element) {
@@ -469,6 +881,52 @@ async function fetchRelationOverrideCandidate(settlement) {
     candidate: {
       geojson,
       display_name: sourceName || `OSM relation ${relationId}`,
+    },
+    centroid,
+    distance,
+  };
+}
+
+async function fetchWayOverrideCandidate(settlement) {
+  const wayId = WAY_OVERRIDES[settlement.id];
+
+  if (!wayId) {
+    return null;
+  }
+
+  const data = await fetchJsonWithRetry(
+    `https://www.openstreetmap.org/api/0.6/way/${wayId}/full.json`,
+    {
+      headers: { 'User-Agent': USER_AGENT },
+    },
+    `OSM way ${wayId}`
+  );
+  const geojson = geojsonFromOsmWay(wayId, data.elements ?? []);
+  const way = (data.elements ?? []).find(
+    (element) => element.type === 'way' && element.id === wayId
+  );
+
+  if (!geojson || !way) {
+    return null;
+  }
+
+  const centroid = centroidFromGeoJSON(geojson);
+  const distance = centroid
+    ? distanceKm(settlement.lat, settlement.lng, centroid.lat, centroid.lng)
+    : Number.POSITIVE_INFINITY;
+  const sourceName = [
+    way.tags?.['name:he'],
+    way.tags?.name,
+    way.tags?.['name:en'],
+    way.tags?.['name:ar'],
+  ]
+    .filter(Boolean)
+    .join(' / ');
+
+  return {
+    candidate: {
+      geojson,
+      display_name: sourceName || `OSM way ${wayId}`,
     },
     centroid,
     distance,
@@ -640,15 +1098,25 @@ async function fetchTextWithRetry(url, options, label) {
   return responseText;
 }
 
+function isRateLimitError(error) {
+  return error instanceof Error && error.message.includes('429');
+}
+
 async function main() {
   const [source, existingOutputSource] = await Promise.all([
     readFile(SOURCE_PATH, 'utf8'),
     readFile(OUTPUT_PATH, 'utf8').catch(() => ''),
   ]);
-  const settlements = parseSettlements(source).filter(
-    (settlement) =>
-      TARGET_SETTLEMENT_IDS.size === 0 || TARGET_SETTLEMENT_IDS.has(settlement.id)
-  );
+  const settlements = parseSettlements(source)
+    .map((settlement) => {
+      const coordinateOverride = SEARCH_COORDINATE_OVERRIDES[settlement.id];
+
+      return coordinateOverride ? { ...settlement, ...coordinateOverride } : settlement;
+    })
+    .filter(
+      (settlement) =>
+        TARGET_SETTLEMENT_IDS.size === 0 || TARGET_SETTLEMENT_IDS.has(settlement.id)
+    );
   const existingOutput = parseExistingOutput(existingOutputSource);
   const entries =
     TARGET_SETTLEMENT_IDS.size === 0 ? {} : { ...existingOutput.entries };
@@ -663,9 +1131,65 @@ async function main() {
   for (const settlement of settlements) {
     let best = null;
 
+    if (TARGET_SETTLEMENT_IDS.size > 0 || SKIP_REMOTE_LOOKUPS) {
+      try {
+        const tzevaAdomCandidate = await fetchTzevaAdomCandidate(settlement);
+
+        if (tzevaAdomCandidate) {
+          best = tzevaAdomCandidate;
+        }
+      } catch (error) {
+        console.warn(`TzevaAdom fallback failed for ${settlement.id}: ${error.message}`);
+      }
+
+      if (!isAcceptableCandidate(best)) {
+        try {
+          const orefCandidate = await fetchOrefCandidate(settlement);
+
+          if (orefCandidate) {
+            best = orefCandidate;
+          }
+        } catch (error) {
+          console.warn(`OREF fallback failed for ${settlement.id}: ${error.message}`);
+        }
+      }
+    }
+
+    if (SKIP_REMOTE_LOOKUPS && isAcceptableCandidate(best)) {
+      missingIds.delete(settlement.id);
+      entries[settlement.id] = {
+        centroid: best.centroid ?? { lat: settlement.lat, lng: settlement.lng },
+        geojson: best.candidate.geojson,
+        sourceName: best.candidate.display_name,
+        distanceKm: Number(best.distance.toFixed(2)),
+      };
+
+      console.log(`Fetched ${settlement.id} (${entries[settlement.id].distanceKm} km)`);
+      continue;
+    }
+
+    if (SKIP_REMOTE_LOOKUPS && !isAcceptableCandidate(best)) {
+      delete entries[settlement.id];
+      missingIds.add(settlement.id);
+      console.warn(`Missing boundary for ${settlement.id}`);
+      continue;
+    }
+
     for (const query of getQueries(settlement)) {
-      const candidates = await fetchCandidate(query);
-      const candidate = pickBestCandidate(settlement, candidates);
+      let candidate = null;
+
+      try {
+        const candidates = await fetchCandidate(query);
+        candidate = pickBestCandidate(settlement, candidates);
+      } catch (error) {
+        console.warn(`Nominatim lookup failed for ${settlement.id}: ${error.message}`);
+
+        if (isRateLimitError(error)) {
+          break;
+        }
+
+        continue;
+      }
 
       if (
         candidate &&
@@ -683,6 +1207,41 @@ async function main() {
     }
 
     if (
+      (!best ||
+        !isPolygonalGeometry(best.candidate.geojson) ||
+        best.distance > MAX_NOMINATIM_MATCH_DISTANCE_KM)
+    ) {
+      try {
+        const tzevaAdomCandidate = await fetchTzevaAdomCandidate(settlement);
+
+        if (
+          tzevaAdomCandidate &&
+          (!best || compareBoundaryCandidates(tzevaAdomCandidate, best) < 0)
+        ) {
+          best = tzevaAdomCandidate;
+        }
+      } catch (error) {
+        console.warn(`TzevaAdom fallback failed for ${settlement.id}: ${error.message}`);
+      }
+    }
+
+    if (
+      !best ||
+      !isPolygonalGeometry(best.candidate.geojson) ||
+      best.distance > MAX_NOMINATIM_MATCH_DISTANCE_KM
+    ) {
+      try {
+        const orefCandidate = await fetchOrefCandidate(settlement);
+
+        if (orefCandidate && (!best || compareBoundaryCandidates(orefCandidate, best) < 0)) {
+          best = orefCandidate;
+        }
+      } catch (error) {
+        console.warn(`OREF fallback failed for ${settlement.id}: ${error.message}`);
+      }
+    }
+
+    if (
       !best ||
       !isPolygonalGeometry(best.candidate.geojson) ||
       best.distance > MAX_NOMINATIM_MATCH_DISTANCE_KM
@@ -695,6 +1254,23 @@ async function main() {
         }
       } catch (error) {
         console.warn(`Overpass fallback failed for ${settlement.id}: ${error.message}`);
+      }
+    }
+
+    if (
+      (!best ||
+        !isPolygonalGeometry(best.candidate.geojson) ||
+        best.distance > MAX_NOMINATIM_MATCH_DISTANCE_KM) &&
+      WAY_OVERRIDES[settlement.id]
+    ) {
+      try {
+        const wayCandidate = await fetchWayOverrideCandidate(settlement);
+
+        if (wayCandidate && (!best || compareBoundaryCandidates(wayCandidate, best) < 0)) {
+          best = wayCandidate;
+        }
+      } catch (error) {
+        console.warn(`Way override failed for ${settlement.id}: ${error.message}`);
       }
     }
 
