@@ -1,19 +1,20 @@
 # 🗺️ משחק הגיאוגרפיה של ישראל — Israel Geo Game
 
-An educational geography quiz game where players identify the locations of Israeli cities and settlements on an interactive map. Inspired by GeoGuessr-style mechanics, but focused exclusively on the map of Israel.
+An educational geography quiz game where players identify Israeli cities and settlements by clicking the correct settlement polygon on an interactive map of Israel.
 
 ![Menu Screen](https://github.com/user-attachments/assets/fa9a3541-9b71-4d46-86d9-8f2dadcb164f)
 
 ## Features
 
-- **Interactive map** — Click on a Leaflet/OpenStreetMap map to guess settlement locations
-- **96 settlements** — Cities, local councils, kibbutzim and more across all of Israel
-- **8 playable regions** — North, Haifa & Carmel, Center, Tel Aviv, Jerusalem, South, Judea & Samaria, Shephelah
-- **Region-based play** — Play one region, several, or all of Israel
-- **Accurate scoring** — Haversine formula calculates distance; closer guesses earn more points (max 1000/round)
-- **Visual feedback** — Markers for guess and correct location, dashed line between them, distance and score display
-- **Round summary** — Full game summary with per-round breakdown, average distance, and best guess
-- **Game modes** — Fixed rounds (5/10/15/20) or endless practice
+- **Polygon-based gameplay** — Click the correct settlement shape directly on the map
+- **Large national dataset** — `1,237` settlements in the data, with `1,226` currently playable using exact boundaries
+- **District-based play** — Play all Israel or filter by specific districts
+- **Five game modes** — Rounds, Endless, Time Attack, Survival, and Mastery
+- **Attempt-based scoring** — First try is worth the most, then points decrease with each miss
+- **Automatic reveal after 3 misses** — The correct settlement is revealed and the round scores `0` base points
+- **Time bonus and streak bonus** — Time Attack rewards speed, and perfect streaks reward consistency
+- **Round feedback and summary** — Review misses, per-round score, total score, bonuses, and best streak
+- **Multiple map styles** — Clean, Streets, Topographic, and Satellite
 - **Hebrew support** — Full RTL layout with Hebrew as the primary language, English secondary
 - **Clean architecture** — Modular React + TypeScript code, easy to extend with new features
 
@@ -23,8 +24,8 @@ An educational geography quiz game where players identify the locations of Israe
 |-------|-----------|
 | Framework | React 19 + TypeScript |
 | Build tool | Vite |
-| Map | Leaflet + React-Leaflet + OpenStreetMap tiles |
-| Data | Static TypeScript modules (no backend needed) |
+| Map | Leaflet + React-Leaflet + public tile providers |
+| Data | Static TypeScript modules with settlement metadata and boundary polygons |
 | Styling | Plain CSS with CSS variables |
 
 ## Prerequisites
@@ -75,25 +76,47 @@ The site will be served from:
 https://naortm.github.io/IsraelGeoGame/
 ```
 
+## Gameplay
+
+Each round presents a settlement name and asks the player to click the correct settlement polygon on the map.
+
+- A correct answer on the first click gives the maximum base score.
+- Each wrong click reduces the base score.
+- After `3` wrong clicks, the correct settlement is revealed automatically and the base score becomes `0`.
+- In Time Attack mode, finishing faster adds a bonus.
+- Perfect first-try streaks add an additional streak bonus.
+
+### Game modes
+
+- **Rounds** — Classic game with a fixed number of rounds (`5`, `10`, `15`, or `20`)
+- **Endless** — Keep playing until you decide to stop
+- **Time Attack** — Every round has a timer and awards a speed bonus
+- **Survival** — The game ends after `3` total wrong guesses across the session
+- **Mastery** — Finish one district at a time, then unlock the next district in sequence
+
 ## Project Structure
 
 ```
 src/
-├── components/         # React UI components
-│   ├── GameMap.tsx      # Leaflet map with click handling, markers, lines
-│   ├── MenuScreen.tsx   # Region/mode selection, game start
-│   ├── PlayingScreen.tsx# Active round — settlement prompt + map
-│   ├── FeedbackScreen.tsx# Post-guess feedback — distance, score, markers
-│   └── SummaryScreen.tsx# End-of-game score summary table
+├── components/          # React UI components
+│   ├── GameMap.tsx      # Leaflet map with settlement polygons and click handling
+│   ├── MenuScreen.tsx   # District, mode, round-count, timer, and map-style selection
+│   ├── PlayingScreen.tsx# Active round state and answer handling
+│   ├── FeedbackScreen.tsx# Post-round feedback and revealed answer state
+│   └── SummaryScreen.tsx# End-of-game score and round summary table
 ├── data/
-│   ├── settlements.ts   # Settlement dataset (96 entries)
-│   └── regions.ts       # Region definitions (8 regions)
+│   ├── settlements.ts    # Settlement dataset
+│   ├── districts.ts      # District definitions and settlement-to-district mapping
+│   ├── settlementBoundaries.ts # Combined boundary dataset metadata
+│   └── boundaries/       # Split boundary chunks and boundary metadata
 ├── hooks/
 │   └── useGame.ts       # Core game state machine
 ├── types/
 │   └── index.ts         # TypeScript interfaces and types
 ├── utils/
-│   └── geo.ts           # Haversine distance, scoring, helpers
+│   ├── geo.ts           # Scoring, attempt formatting, and shuffle helpers
+│   ├── districts.ts     # District lookup helpers
+│   └── settlementBoundaries.ts # Boundary loading and fallback helpers
 ├── App.tsx              # Root component — phase router
 ├── App.css              # All application styles
 ├── index.css            # Global CSS reset
@@ -119,25 +142,29 @@ Each settlement entry in `src/data/settlements.ts`:
 }
 ```
 
-### Region
+### District Mapping
 
-Each region entry in `src/data/regions.ts`:
+District definitions are re-exported through `src/data/regions.ts`, and the primary district mapping lives in `src/data/districts.ts`.
+
+Example district entry:
 
 ```typescript
 {
-  id: "north",
-  name_he: "צפון",
-  name_en: "North",
-  description_he: "הגליל והגולן",
-  description_en: "Galilee and Golan"
+  id: "גליל עליון",
+  name_he: "גליל עליון",
+  name_en: "גליל עליון",
+  description_he: "מחוז פיקוד העורף גליל עליון",
+  description_en: "Home Front Command district גליל עליון"
 }
 ```
+
+Playable settlement boundaries are loaded from the split files under `src/data/boundaries/`. A small fallback list in `src/data/boundaries/metadata.ts` marks settlements that currently only have approximate polygons; those are excluded from active play.
 
 ## How to Update Data
 
 ### Adding settlements
 
-Edit `src/data/settlements.ts` and add entries to the `settlements` array. Every settlement must reference a valid `region` id.
+Edit `src/data/settlements.ts` and add entries to the `settlements` array. Every settlement should reference a valid base `region` id, and if you want district-based play to place it in a specific district, update the mapping in `src/data/districts.ts` as well.
 
 To rebuild the settlements dataset from the official locality registries plus alias normalization, run:
 
@@ -169,30 +196,41 @@ CHUNK_SIZE=20 MAX_BATCHES=5 npm run boundaries:batch
 
 This will iterate over the current approximate-locality list, fetch boundaries in chunks, and re-split metadata after each chunk.
 
-### Adding or changing regions
+### Adding or changing districts
 
-Edit `src/data/regions.ts`. Update region ids in the settlements file to match. The game UI automatically picks up new regions.
+Edit `src/data/districts.ts`. The game UI automatically picks up new district definitions and settlement mappings.
 
 ## Scoring
 
-| Distance | Approximate Score |
-|----------|------------------|
-| 0 km | 1000 |
-| 5 km | 861 |
-| 10 km | 741 |
-| 25 km | 472 |
-| 50 km | 223 |
-| 100 km | 50 |
-| 150 km+ | ~0 |
+### Base score by wrong clicks
 
-Formula: `score = 1000 × e^(−0.03 × distance_km)`
+| Wrong clicks before success | Base score |
+|----------------------------|------------|
+| 0 | 3 |
+| 1 | 2 |
+| 2 | 1 |
+| 3+ | 0 |
+
+After the third wrong click, the round is submitted automatically and the correct settlement is revealed.
+
+### Time Attack bonus
+
+| Remaining time ratio | Bonus |
+|----------------------|-------|
+| `>= 66%` | 3 |
+| `>= 33%` | 2 |
+| `> 0%` | 1 |
+| `0%` | 0 |
+
+### Streak bonus
+
+- Perfect first-try streaks start giving bonus points from the second consecutive perfect round.
+- The streak bonus grows by `+1` per qualifying round and is capped at `+3`.
 
 ## Future Expansion Ideas
 
 The architecture is designed for easy extension:
 
-- ⏱️ Timer mode
-- ❤️ Lives / mistakes limit
 - 🏆 Leaderboard (localStorage or backend)
 - 🔍 Search & learn mode — explore settlements on the map
 - 🎚️ Difficulty levels
