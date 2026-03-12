@@ -2,7 +2,7 @@
 
 An educational geography quiz game where players identify Israeli cities and settlements by clicking the correct settlement polygon on an interactive map of Israel.
 
-![Menu Screen](https://github.com/user-attachments/assets/fa9a3541-9b71-4d46-86d9-8f2dadcb164f)
+![Current Menu Screen](docs/readme-home.png)
 
 ## Features
 
