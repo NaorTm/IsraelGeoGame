@@ -89,15 +89,25 @@ export default function PlayingScreen({
       return;
     }
 
-    setWrongGuessIds((previous) => {
-      if (previous.includes(selectedSettlementId)) {
-        return previous;
-      }
+    if (wrongGuessIds.includes(selectedSettlementId)) {
+      return;
+    }
 
-      onRegisterWrongGuess();
+    const nextWrongGuessIds = [...wrongGuessIds, selectedSettlementId];
 
-      return [...previous, selectedSettlementId];
-    });
+    onRegisterWrongGuess();
+
+    if (nextWrongGuessIds.length >= 3) {
+      setWrongGuessIds(nextWrongGuessIds);
+      setRoundResolved(true);
+      onSubmitGuess({
+        wrongGuessIds: nextWrongGuessIds,
+        timeRemainingSeconds: mode === 'time_attack' ? timeRemaining : undefined,
+      });
+      return;
+    }
+
+    setWrongGuessIds(nextWrongGuessIds);
   };
 
   const missesLabel =
@@ -192,8 +202,8 @@ export default function PlayingScreen({
         )}
         <p className="click-hint">
           {mode === 'time_attack'
-            ? 'לחץ מהר על צורת היישוב הנכון כדי לשמור על בונוס המהירות'
-            : 'לחץ על צורת היישוב הנכון במפה'}
+            ? 'לחץ מהר על צורת היישוב הנכון כדי לשמור על בונוס המהירות. אחרי 3 פספוסים התשובה תיחשף אוטומטית'
+            : 'לחץ על צורת היישוב הנכון במפה. אחרי 3 פספוסים התשובה תיחשף אוטומטית'}
         </p>
       </div>
     </div>
