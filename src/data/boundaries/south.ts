@@ -14301,24 +14301,16 @@ export const settlementBoundaries: SettlementBoundaryCollection = {
   },
   "makchul": {
     "centroid": {
-      "lat": 31.287986,
-      "lng": 35.075204
+      "lat": 31.287861,
+      "lng": 35.075205
     },
     "geojson": {
       "type": "Polygon",
       "coordinates": [
         [
           [
-            35.07427,
-            31.28761
-          ],
-          [
             35.07428,
             31.28636
-          ],
-          [
-            35.07488,
-            31.2864
           ],
           [
             35.07664,
@@ -14333,14 +14325,14 @@ export const settlementBoundaries: SettlementBoundaryCollection = {
             31.28959
           ],
           [
-            35.07427,
-            31.28761
+            35.07428,
+            31.28636
           ]
         ]
       ]
     },
-    "sourceName": "مكحول, مجلس إقليمي القيصوم, נפת באר שבע, מחוז הדרום, ישראל",
-    "distanceKm": 0.1
+    "sourceName": "מכחול / مكحول / Makchul",
+    "distanceKm": 0.11
   },
   "melilot": {
     "centroid": {
@@ -14708,38 +14700,38 @@ export const settlementBoundaries: SettlementBoundaryCollection = {
   },
   "shezaf": {
     "centroid": {
-      "lat": 31.002483,
-      "lng": 34.765263
+      "lat": 31.00242,
+      "lng": 34.765283
     },
     "geojson": {
       "type": "Polygon",
       "coordinates": [
         [
           [
-            34.76444,
-            31.00391
+            34.7651,
+            31.00188
+          ],
+          [
+            34.76482,
+            31.00417
+          ],
+          [
+            34.76591,
+            31.0025
           ],
           [
             34.76547,
             31.00079
           ],
           [
-            34.76593,
-            31.00219
-          ],
-          [
-            34.76507,
-            31.00403
-          ],
-          [
-            34.76444,
-            31.00391
+            34.7651,
+            31.00188
           ]
         ]
       ]
     },
-    "sourceName": "שיזף, נפת באר שבע, מחוז הדרום, ישראל",
-    "distanceKm": 0.1
+    "sourceName": "שיזף / שיזף / Sheizaf",
+    "distanceKm": 0.09
   },
   "shani": {
     "centroid": {
@@ -15927,7 +15919,7 @@ export const settlementBoundaries: SettlementBoundaryCollection = {
         ]
       ]
     },
-    "sourceName": "أبو رقيق, تل السبع, נפת באר שבע, מחוז הדרום, ישראל",
+    "sourceName": "אבו רוקייק / أبو رقيق / Abu Rukayk / أبو رقيق",
     "distanceKm": 9.65
   }
 } as const;

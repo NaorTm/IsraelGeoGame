@@ -21758,37 +21758,6 @@ export const settlementBoundaries: SettlementBoundaryCollection = {
     "sourceName": "TzevaAdom / צפריה",
     "distanceKm": 0.11
   },
-  "bet_herut": {
-    "centroid": {
-      "lat": 32.379083,
-      "lng": 34.867138
-    },
-    "geojson": {
-      "type": "Polygon",
-      "coordinates": [
-        [
-          [
-            34.86706,
-            32.37916
-          ],
-          [
-            34.8671,
-            32.37894
-          ],
-          [
-            34.86725,
-            32.37896
-          ],
-          [
-            34.86706,
-            32.37916
-          ]
-        ]
-      ]
-    },
-    "sourceName": "בריכת בית חירות, המדגרה, כפר ויתקין, מועצה אזורית עמק חפר, נפת השרון, מחוז המרכז, 4020000, ישראל",
-    "distanceKm": 0.12
-  },
   "bet_rabban": {
     "centroid": {
       "lat": 31.817827,
@@ -22111,13 +22080,17 @@ export const settlementBoundaries: SettlementBoundaryCollection = {
   },
   "kerem_ben_shemen": {
     "centroid": {
-      "lat": 31.958587,
-      "lng": 34.933718
+      "lat": 31.958803,
+      "lng": 34.934058
     },
     "geojson": {
       "type": "Polygon",
       "coordinates": [
         [
+          [
+            34.93497,
+            31.96023
+          ],
           [
             34.93259,
             31.95872
@@ -22133,16 +22106,12 @@ export const settlementBoundaries: SettlementBoundaryCollection = {
           [
             34.93497,
             31.96023
-          ],
-          [
-            34.93259,
-            31.95872
           ]
         ]
       ]
     },
-    "sourceName": "כרם בן שמן, מועצה אזורית חבל מודיעין, נפת רמלה, מחוז המרכז, ישראל",
-    "distanceKm": 0.03
+    "sourceName": "כרם בן שמן / כרם בן שמן / Kerem Ben Shemen",
+    "distanceKm": 0.04
   },
   "kochav_yair_tsur_yi": {
     "centroid": {
@@ -22790,41 +22759,6 @@ export const settlementBoundaries: SettlementBoundaryCollection = {
     "sourceName": "קרית עקרון, נפת רחובות, מחוז המרכז, ישראל",
     "distanceKm": 0.7
   },
-  "qiryat_shelomo": {
-    "centroid": {
-      "lat": 32.234598,
-      "lng": 34.861922
-    },
-    "geojson": {
-      "type": "Polygon",
-      "coordinates": [
-        [
-          [
-            34.86073,
-            32.23486
-          ],
-          [
-            34.86095,
-            32.234
-          ],
-          [
-            34.86248,
-            32.23407
-          ],
-          [
-            34.86217,
-            32.2349
-          ],
-          [
-            34.86073,
-            32.23486
-          ]
-        ]
-      ]
-    },
-    "sourceName": "בית חולים קרית שלמה, 551, מועצה אזורית חוף השרון, נפת השרון, מחוז המרכז, 4249355, ישראל",
-    "distanceKm": 0.02
-  },
   "yeaf": {
     "centroid": {
       "lat": 32.267277,
@@ -22870,38 +22804,38 @@ export const settlementBoundaries: SettlementBoundaryCollection = {
   },
   "shoshannat_haamaqim": {
     "centroid": {
-      "lat": 32.360276,
-      "lng": 34.858162
+      "lat": 32.360501,
+      "lng": 34.858293
     },
     "geojson": {
       "type": "Polygon",
       "coordinates": [
         [
           [
-            34.85743,
-            32.35913
-          ],
-          [
-            34.8588,
-            32.35927
-          ],
-          [
             34.85913,
             32.36205
           ],
           [
-            34.85791,
-            32.36162
+            34.85893,
+            32.35937
           ],
           [
             34.85743,
             32.35913
+          ],
+          [
+            34.85814,
+            32.36234
+          ],
+          [
+            34.85913,
+            32.36205
           ]
         ]
       ]
     },
-    "sourceName": "צוקי ים, מועצה אזורית עמק חפר, נפת השרון, מחוז המרכז, ישראל",
-    "distanceKm": 0.07
+    "sourceName": "צוקי ים / צוקי ים / Zukey Yam",
+    "distanceKm": 0.04
   },
   "shaalvim": {
     "centroid": {
