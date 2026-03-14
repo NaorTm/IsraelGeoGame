@@ -275,14 +275,7 @@ export function useGame() {
       const maxRounds = Math.min(prev.config.roundCount, filteredSettlements.length);
       const exhaustedQuestionPool = prev.roundResults.length >= prev.questionPool.length;
 
-      if (!isLoopingMode && exhaustedQuestionPool) {
-        return {
-          ...prev,
-          phase: 'summary',
-        };
-      }
-
-      if (!isLoopingMode && nextRoundNum > maxRounds) {
+      if (!isLoopingMode && (exhaustedQuestionPool || nextRoundNum > maxRounds)) {
         return {
           ...prev,
           phase: 'summary',
