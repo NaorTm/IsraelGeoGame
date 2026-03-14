@@ -100,6 +100,10 @@ export default function PlayingScreen({
     if (nextWrongGuessIds.length >= 3) {
       setWrongGuessIds(nextWrongGuessIds);
       setRoundResolved(true);
+      onMapViewportChange({
+        center: [settlement.lat, settlement.lng],
+        zoom: 10,
+      });
       onSubmitGuess({
         wrongGuessIds: nextWrongGuessIds,
         timeRemainingSeconds: mode === 'time_attack' ? timeRemaining : undefined,
