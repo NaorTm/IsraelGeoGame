@@ -138,44 +138,7 @@ export default function PlayingScreen({
 
   return (
     <div className="playing-screen">
-      {/* Top bar */}
-      <div className="game-top-bar">
-        <div className="top-bar-info">
-          <span className="round-label">{roundLabel}</span>
-          <span className="score-label">ניקוד: {totalScore}</span>
-          {currentStreak > 1 && (
-            <span className="status-chip streak-chip">רצף: {currentStreak}</span>
-          )}
-          {mode === 'survival' && (
-            <span className="status-chip survival-chip">
-              חיים: {survivalLivesRemaining}
-            </span>
-          )}
-          {mode === 'time_attack' && (
-            <span className={`status-chip timer-chip ${timeRemaining <= 5 ? 'urgent' : ''}`}>
-              זמן: {timeRemaining}
-            </span>
-          )}
-        </div>
-        {(mode === 'endless' || mode === 'survival') && (
-          <button className="end-game-btn" onClick={onEndGame}>
-            סיים משחק
-          </button>
-        )}
-      </div>
-
-      {/* Settlement prompt */}
-      <div className="settlement-prompt">
-        <div className="prompt-label">איפה נמצא/ת:</div>
-        <div className="settlement-name">{settlement.name_he}</div>
-        <div className="settlement-name-en">{settlement.name_en}</div>
-        {currentDistrictName && mode === 'mastery' && (
-          <div className="mode-context">מחוז פעיל: {currentDistrictName}</div>
-        )}
-      </div>
-
-      {/* Map */}
-      <div className="map-container">
+      <div className="map-container playing-map-container">
         <GameMap
           settlements={availableSettlements}
           mapStyle={mapStyle}
@@ -187,24 +150,55 @@ export default function PlayingScreen({
           onSettlementSelect={handleSettlementClick}
           interactive={true}
         />
-      </div>
 
-      {/* Round status */}
-      <div className="confirm-area">
-        <div className="attempt-status">
-          <div className="attempt-score">{pointsLabel}</div>
-          <div className="attempt-misses">{missesLabel}</div>
-        </div>
-        {wrongGuessNames.length > 0 && (
-          <div className="wrong-guesses-list">
-            ניסיונות קודמים: {wrongGuessNames.join(' • ')}
+        <div className="playing-overlay">
+          <div className="playing-top-hud">
+            <div className="hud-pills">
+              <span className="hud-pill">{roundLabel}</span>
+              <span className="hud-pill score">ניקוד: {totalScore}</span>
+              {currentStreak > 1 && (
+                <span className="hud-pill streak">רצף: {currentStreak}</span>
+              )}
+              {mode === 'survival' && (
+                <span className="hud-pill survival">חיים: {survivalLivesRemaining}</span>
+              )}
+              {mode === 'time_attack' && (
+                <span className={`hud-pill timer ${timeRemaining <= 5 ? 'urgent' : ''}`}>
+                  זמן: {timeRemaining}
+                </span>
+              )}
+            </div>
+            <button className="end-game-btn ghost" onClick={onEndGame}>
+              סיים משחק
+            </button>
           </div>
-        )}
-        <p className="click-hint">
-          {mode === 'time_attack'
-            ? 'לחץ מהר על צורת היישוב הנכון כדי לשמור על בונוס המהירות. אחרי 3 פספוסים התשובה תיחשף אוטומטית'
-            : 'לחץ על צורת היישוב הנכון במפה. אחרי 3 פספוסים התשובה תיחשף אוטומטית'}
-        </p>
+
+          <div className="settlement-prompt floating">
+            <div className="prompt-label">איפה נמצא/ת:</div>
+            <div className="settlement-name">{settlement.name_he}</div>
+            <div className="settlement-name-en">{settlement.name_en}</div>
+            {currentDistrictName && mode === 'mastery' && (
+              <div className="mode-context">מחוז פעיל: {currentDistrictName}</div>
+            )}
+          </div>
+
+          <div className="confirm-area floating">
+            <div className="attempt-status">
+              <div className="attempt-score">{pointsLabel}</div>
+              <div className="attempt-misses">{missesLabel}</div>
+            </div>
+            {wrongGuessNames.length > 0 && (
+              <div className="wrong-guesses-list">
+                ניסיונות קודמים: {wrongGuessNames.join(' • ')}
+              </div>
+            )}
+            <p className="click-hint">
+              {mode === 'time_attack'
+                ? 'פגע מהר במפה. אחרי 3 פספוסים התשובה נחשפת.'
+                : 'בחר את היישוב במפה. אחרי 3 פספוסים התשובה נחשפת.'}
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );

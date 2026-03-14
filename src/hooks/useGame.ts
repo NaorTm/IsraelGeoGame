@@ -272,12 +272,36 @@ export function useGame() {
 
       const isLoopingMode =
         prev.config.mode === 'endless' || prev.config.mode === 'survival';
-      const maxRounds = Math.min(prev.config.roundCount, filteredSettlements.length);
+      if (!isLoopingMode) {
+        if (nextRoundNum > prev.config.roundCount) {
+          return {
+            ...prev,
+            phase: 'summary',
+          };
+        }
 
-      if (!isLoopingMode && nextRoundNum > maxRounds) {
+        const usedSettlementIds = new Set(
+          prev.roundResults.map((result) => result.settlement.id)
+        );
+        const remainingSettlements = filteredSettlements.filter(
+          (settlement) => !usedSettlementIds.has(settlement.id)
+        );
+
+        if (remainingSettlements.length === 0) {
+          return {
+            ...prev,
+            phase: 'summary',
+          };
+        }
+
+        const nextSettlement = shuffleArray(remainingSettlements)[0];
+
         return {
           ...prev,
-          phase: 'summary',
+          phase: 'playing',
+          currentRound: nextRoundNum,
+          currentSettlement: nextSettlement,
+          questionPool: remainingSettlements,
         };
       }
 

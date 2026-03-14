@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { FeatureCollection } from 'geojson';
-import { MapContainer, TileLayer, GeoJSON, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, GeoJSON, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { mapStyles } from '../data/mapStyles';
@@ -31,6 +31,7 @@ interface GameMapProps {
   onMapViewportChange: (mapViewport: MapViewport) => void;
   correctSettlementIds?: string[];
   wrongGuessIds?: string[];
+  focusSettlementId?: string;
   onSettlementSelect?: (settlementId: string) => void;
   interactive: boolean;
 }
@@ -113,6 +114,41 @@ function MapViewportTracker({
   return null;
 }
 
+function MapFocusController({
+  focusSettlementId,
+  settlements,
+}: {
+  focusSettlementId?: string;
+  settlements: Settlement[];
+}) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!focusSettlementId) {
+      return;
+    }
+
+    const focusedSettlement = settlements.find(
+      (settlement) => settlement.id === focusSettlementId
+    );
+
+    if (!focusedSettlement) {
+      return;
+    }
+
+    map.flyTo(
+      [focusedSettlement.lat, focusedSettlement.lng],
+      Math.max(map.getZoom(), 10),
+      {
+        animate: true,
+        duration: 0.6,
+      }
+    );
+  }, [focusSettlementId, map, settlements]);
+
+  return null;
+}
+
 export default function GameMap({
   settlements,
   mapStyle,
@@ -121,6 +157,7 @@ export default function GameMap({
   onMapViewportChange,
   correctSettlementIds,
   wrongGuessIds,
+  focusSettlementId,
   onSettlementSelect,
   interactive,
 }: GameMapProps) {
@@ -228,6 +265,10 @@ export default function GameMap({
         className="game-map"
       >
         <MapViewportTracker onViewportChange={onMapViewportChange} />
+        <MapFocusController
+          focusSettlementId={focusSettlementId}
+          settlements={settlements}
+        />
         <TileLayer
           key={`${selectedMapStyle.id}:${selectedMapStyle.tileUrl}`}
           {...tileLayerProps}

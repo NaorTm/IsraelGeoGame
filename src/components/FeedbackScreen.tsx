@@ -122,6 +122,7 @@ export default function FeedbackScreen({
           onMapViewportChange={onMapViewportChange}
           correctSettlementIds={completedSettlementIds}
           wrongGuessIds={result.wrongGuessIds}
+          focusSettlementId={result.settlement.id}
           interactive={false}
         />
       </div>
