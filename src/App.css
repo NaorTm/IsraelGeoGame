@@ -1130,6 +1130,10 @@ body {
 }
 
 @media (max-width: 640px) {
+  .game-map-shell {
+    --mobile-map-style-panel-top: 104px;
+  }
+
   .playing-overlay {
     padding: 8px 8px calc(env(safe-area-inset-bottom) + 8px);
     grid-template-rows: auto auto 1fr;
@@ -1203,8 +1207,9 @@ body {
   }
 
   .map-style-panel {
-    top: 10px;
-    right: 10px;
+    top: var(--mobile-map-style-panel-top);
+    right: auto;
+    left: 10px;
     min-width: 132px;
     padding: 8px 10px;
   }
