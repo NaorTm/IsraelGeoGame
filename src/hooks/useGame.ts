@@ -121,7 +121,7 @@ export function useGame() {
   const isLastRound = useMemo(() => {
     if (state.config.mode === 'endless' || state.config.mode === 'survival') {
       return (
-        filteredSettlements.length > 0 &&
+        filteredSettlements.length === 0 ||
         state.roundResults.length >= filteredSettlements.length
       );
     }
