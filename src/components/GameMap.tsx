@@ -349,30 +349,30 @@ export default function GameMap({
       </div>
 
       <div className="map-legend">
-        <div className="map-legend-item">
+        <div className="map-legend-item map-legend-item-mobile-hidden">
           <span className="map-legend-swatch available" />
           <span>יישוב לבחירה</span>
         </div>
         {(wrongGuessIds?.length ?? 0) >= 1 && (
-          <div className="map-legend-item">
+          <div className="map-legend-item map-legend-item-mobile-hidden">
             <span className="map-legend-swatch wrong-first" />
             <span>פספוס ראשון</span>
           </div>
         )}
         {(wrongGuessIds?.length ?? 0) >= 2 && (
-          <div className="map-legend-item">
+          <div className="map-legend-item map-legend-item-mobile-hidden">
             <span className="map-legend-swatch wrong-second" />
             <span>פספוס שני</span>
           </div>
         )}
         {(wrongGuessIds?.length ?? 0) >= 3 && (
-          <div className="map-legend-item">
+          <div className="map-legend-item map-legend-item-mobile-hidden">
             <span className="map-legend-swatch wrong-third" />
             <span>פספוס שלישי ומעלה</span>
           </div>
         )}
         {correctSettlementSet.size > 0 && (
-          <div className="map-legend-item">
+          <div className="map-legend-item map-legend-item-mobile-hidden">
             <span className="map-legend-swatch correct" />
             <span>יישוב שנפתר נכון</span>
           </div>

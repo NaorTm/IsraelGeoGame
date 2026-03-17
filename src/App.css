@@ -1231,6 +1231,10 @@ body {
   .map-legend-item {
     font-size: 12px;
   }
+
+  .map-legend-item-mobile-hidden {
+    display: none;
+  }
 }
 
 /* ===== Map Customization ===== */
