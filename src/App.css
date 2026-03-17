@@ -1131,12 +1131,20 @@ body {
 
 @media (max-width: 640px) {
   .playing-overlay {
-    padding: 8px;
+    padding: 8px 8px calc(env(safe-area-inset-bottom) + 8px);
+    grid-template-rows: auto auto 1fr;
   }
 
   .playing-top-hud {
     width: 100%;
-    justify-content: center;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-top: 54px;
+    gap: 8px;
+  }
+
+  .hud-pills {
+    max-width: calc(100% - 100px);
   }
 
   .hud-pill {
@@ -1165,12 +1173,12 @@ body {
     right: auto;
     top: auto;
     transform: translateX(-50%);
-    width: max-content;
-    max-width: calc(100% - 8px);
+    width: calc(100% - 8px);
     margin: 0;
-    bottom: 4px;
+    bottom: calc(env(safe-area-inset-bottom) + 4px);
     padding: 2px;
     border-radius: 9px;
+    align-items: stretch;
   }
 
   .confirm-area.floating .attempt-score,
@@ -1178,6 +1186,15 @@ body {
   .confirm-area.floating .wrong-guesses-list,
   .confirm-area.floating .click-hint {
     font-size: 16px;
+  }
+
+  .confirm-area.floating > * {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .confirm-area.floating .click-hint {
+    display: inline-block;
   }
 
   .end-game-btn.ghost {
