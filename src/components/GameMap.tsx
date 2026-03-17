@@ -349,7 +349,6 @@ export default function GameMap({
       </div>
 
       <div className="map-legend">
-        <div className="map-legend-title">מקרא</div>
         <div className="map-legend-item">
           <span className="map-legend-swatch available" />
           <span>יישוב לבחירה</span>
