@@ -1174,7 +1174,6 @@ body {
     top: auto;
     transform: translateX(-50%);
     width: calc(100% - 8px);
-    max-width: calc(100% - 8px);
     margin: 0;
     bottom: calc(env(safe-area-inset-bottom) + 4px);
     padding: 2px;
@@ -1189,9 +1188,7 @@ body {
     font-size: 16px;
   }
 
-  .confirm-area.floating .attempt-status,
-  .confirm-area.floating .wrong-guesses-list,
-  .confirm-area.floating .click-hint {
+  .confirm-area.floating > * {
     width: 100%;
     max-width: 100%;
   }
