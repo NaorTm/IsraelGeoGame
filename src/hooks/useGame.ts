@@ -120,11 +120,14 @@ export function useGame() {
 
   const isLastRound = useMemo(() => {
     if (state.config.mode === 'endless' || state.config.mode === 'survival') {
-      return false;
+      return (
+        filteredSettlements.length > 0 &&
+        state.roundResults.length >= filteredSettlements.length
+      );
     }
 
     return state.currentRound >= totalRounds;
-  }, [state.config.mode, state.currentRound, totalRounds]);
+  }, [state.config.mode, state.currentRound, state.roundResults.length, totalRounds, filteredSettlements.length]);
 
   const updateConfig = useCallback((updates: Partial<GameConfig>) => {
     setState((prev) => ({
@@ -270,55 +273,38 @@ export function useGame() {
         };
       }
 
-      const isLoopingMode =
-        prev.config.mode === 'endless' || prev.config.mode === 'survival';
-      if (!isLoopingMode) {
-        if (nextRoundNum > prev.config.roundCount) {
-          return {
-            ...prev,
-            phase: 'summary',
-          };
-        }
-
-        const usedSettlementIds = new Set(
-          prev.roundResults.map((result) => result.settlement.id)
-        );
-        const remainingSettlements = filteredSettlements.filter(
-          (settlement) => !usedSettlementIds.has(settlement.id)
-        );
-
-        if (remainingSettlements.length === 0) {
-          return {
-            ...prev,
-            phase: 'summary',
-          };
-        }
-
-        const nextSettlement = shuffleArray(remainingSettlements)[0];
-
+      if (
+        (prev.config.mode === 'rounds' || prev.config.mode === 'time_attack') &&
+        nextRoundNum > prev.config.roundCount
+      ) {
         return {
           ...prev,
-          phase: 'playing',
-          currentRound: nextRoundNum,
-          currentSettlement: nextSettlement,
-          questionPool: remainingSettlements,
+          phase: 'summary',
         };
       }
 
-      let pool = prev.questionPool;
-      let nextIdx = nextRoundNum - 1;
+      const usedSettlementIds = new Set(
+        prev.roundResults.map((result) => result.settlement.id)
+      );
+      const remainingSettlements = filteredSettlements.filter(
+        (settlement) => !usedSettlementIds.has(settlement.id)
+      );
 
-      if (nextIdx >= pool.length) {
-        pool = shuffleArray(filteredSettlements);
-        nextIdx = 0;
+      if (remainingSettlements.length === 0) {
+        return {
+          ...prev,
+          phase: 'summary',
+        };
       }
+
+      const nextSettlement = shuffleArray(remainingSettlements)[0];
 
       return {
         ...prev,
         phase: 'playing',
         currentRound: nextRoundNum,
-        currentSettlement: pool[nextIdx],
-        questionPool: pool,
+        currentSettlement: nextSettlement,
+        questionPool: remainingSettlements,
       };
     });
   }, [

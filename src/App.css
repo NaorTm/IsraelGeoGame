@@ -1222,6 +1222,11 @@ body {
 
 /* ===== Responsive ===== */
 @media (max-width: 600px) {
+  .feedback-screen {
+    height: 100dvh;
+    overflow-y: auto;
+  }
+
   .menu-card,
   .summary-card {
     padding: 24px 16px;
@@ -1294,6 +1299,10 @@ body {
   .feedback-actions {
     padding: 10px 12px;
     gap: 8px;
+    flex-wrap: wrap;
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
   }
 
   .feedback-actions .next-btn,
