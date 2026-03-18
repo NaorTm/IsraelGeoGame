@@ -16,12 +16,8 @@ import {
   loadBoundaryCollectionsForSettlements,
 } from '../utils/settlementBoundaries';
 
-// Israel bounds
+// Israel default viewport
 const ISRAEL_CENTER: [number, number] = [31.5, 35.0];
-const ISRAEL_BOUNDS: L.LatLngBoundsExpression = [
-  [29.3, 34.0],
-  [33.5, 36.0],
-];
 
 interface GameMapProps {
   settlements: Settlement[];
@@ -259,8 +255,6 @@ export default function GameMap({
         zoom={mapViewport.zoom ?? 7}
         minZoom={6}
         maxZoom={16}
-        maxBounds={ISRAEL_BOUNDS}
-        maxBoundsViscosity={1.0}
         style={{ height: '100%', width: '100%', borderRadius: '12px' }}
         className="game-map"
       >
