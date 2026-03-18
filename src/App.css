@@ -1224,12 +1224,23 @@ body {
     top: var(--mobile-map-style-panel-top);
     right: auto;
     left: 10px;
-    min-width: 132px;
-    padding: 8px 10px;
+    min-width: 112px;
+    padding: 6px 8px;
+  }
+
+  .map-style-label {
+    margin-bottom: 4px;
+    font-size: 12px;
+  }
+
+  .map-style-select {
+    padding: 5px 6px;
+    font-size: 12px;
+    border-radius: 8px;
   }
 
   .playing-map-container .map-style-panel {
-    top: 158px;
+    top: 146px;
   }
 
   .map-legend {
