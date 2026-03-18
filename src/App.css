@@ -1141,14 +1141,25 @@ body {
 
   .playing-top-hud {
     width: 100%;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-top: 54px;
+    justify-content: center;
+    align-items: center;
+    margin-top: 8px;
     gap: 8px;
+    position: relative;
   }
 
   .hud-pills {
-    max-width: calc(100% - 100px);
+    max-width: 100%;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .playing-top-hud .hud-pill:not(.score) {
+    display: none;
+  }
+
+  .playing-top-hud .hud-pill.score {
+    font-size: 13px;
   }
 
   .hud-pill {
@@ -1204,6 +1215,9 @@ body {
   .end-game-btn.ghost {
     font-size: 12px;
     padding: 6px 10px;
+    position: absolute;
+    top: 0;
+    right: 0;
   }
 
   .map-style-panel {
@@ -1212,6 +1226,10 @@ body {
     left: 10px;
     min-width: 132px;
     padding: 8px 10px;
+  }
+
+  .playing-map-container .map-style-panel {
+    top: 158px;
   }
 
   .map-legend {
@@ -1230,6 +1248,10 @@ body {
 
   .map-legend-item {
     font-size: 12px;
+  }
+
+  .map-legend-item-mobile-hidden {
+    display: none;
   }
 }
 
