@@ -40,14 +40,28 @@ An educational geography quiz game where players identify Israeli cities and set
 git clone https://github.com/NaorTm/IsraelGeoGame.git
 cd IsraelGeoGame
 
-# Install dependencies
-npm install
+# Install dependencies (recommended for CI parity)
+npm ci
 
 # Start the development server
 npm run dev
 ```
 
 Open [http://localhost:5173](http://localhost:5173) in your browser.
+
+## Available Scripts
+
+```bash
+npm run dev               # Start Vite dev server
+npm run lint              # Run ESLint
+npm run build             # TypeScript check + production build
+npm run preview           # Preview production build
+npm run localities:build  # Rebuild settlements list from official registries
+npm run boundaries:fetch  # Fetch/refresh settlement polygons
+npm run boundaries:split  # Split fetched polygons into district chunks
+npm run boundaries:batch  # Fetch polygons in resumable batches
+npm run boundaries:build  # boundaries:fetch + boundaries:split
+```
 
 ## Build for Production
 
@@ -61,6 +75,8 @@ The output is placed in the `dist/` folder and can be deployed to any static hos
 ## Deploy to GitHub Pages
 
 This repository includes a GitHub Actions workflow that lints, builds, and deploys the app to GitHub Pages on every push to `main`.
+
+> The workflow installs dependencies with `npm ci`, so `package-lock.json` must stay committed.
 
 To enable it:
 
