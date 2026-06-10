@@ -168,14 +168,14 @@ export default function PlayingScreen({
                 </span>
               )}
             </div>
-            <button className="end-game-btn ghost" onClick={onEndGame}>
+            <button className="end-game-btn ghost" data-testid="solo-end-game-button" onClick={onEndGame}>
               סיים משחק
             </button>
           </div>
 
-          <div className="settlement-prompt floating">
+          <div className="settlement-prompt floating" data-testid="solo-current-prompt">
             <div className="prompt-label">איפה נמצא/ת:</div>
-            <div className="settlement-name">{settlement.name_he}</div>
+            <div className="settlement-name" data-testid="solo-current-settlement-he">{settlement.name_he}</div>
             <div className="settlement-name-en">{settlement.name_en}</div>
             {currentDistrictName && mode === 'mastery' && (
               <div className="mode-context">מחוז פעיל: {currentDistrictName}</div>

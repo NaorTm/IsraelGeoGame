@@ -1,89 +1,100 @@
-import { useState } from 'react';
-import { useGame } from './hooks/useGame';
-import MenuScreen from './components/MenuScreen';
-import PlayingScreen from './components/PlayingScreen';
-import FeedbackScreen from './components/FeedbackScreen';
-import SummaryScreen from './components/SummaryScreen';
-import type { MapViewport } from './types';
+import { lazy, Suspense, type ReactNode } from 'react';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import AppShell from './components/app/AppShell';
+import { AuthProvider } from './providers/AuthProvider';
 import './App.css';
 
-const DEFAULT_MAP_VIEWPORT: MapViewport = {
-  center: [31.5, 35.0],
-  zoom: 7,
-};
+const AuthCallbackPage = lazy(() => import('./pages/AuthCallbackPage'));
+const HomePage = lazy(() => import('./pages/HomePage'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const PvpMatchPage = lazy(() => import('./pages/PvpMatchPage'));
+const PvpQueuePage = lazy(() => import('./pages/PvpQueuePage'));
+const SoloPage = lazy(() => import('./pages/SoloPage'));
+
+function RouteFallback() {
+  return (
+    <section className="surface-card loading-panel" data-testid="route-loading">
+      <strong>{'\u05d8\u05d5\u05e2\u05df \u05d0\u05ea \u05d4\u05e2\u05de\u05d5\u05d3...'}</strong>
+      <span>
+        {
+          '\u05d8\u05e2\u05d9\u05e0\u05ea \u05d4\u05e0\u05ea\u05d9\u05d1, \u05e0\u05ea\u05d5\u05e0\u05d9 \u05d4\u05d7\u05e9\u05d1\u05d5\u05df \u05d5\u05d4\u05de\u05de\u05e9\u05e7.'
+        }
+      </span>
+    </section>
+  );
+}
+
+function NotFoundPage() {
+  return (
+    <section className="surface-card">
+      <h1>{'\u05d4\u05e2\u05de\u05d5\u05d3 \u05dc\u05d0 \u05e0\u05de\u05e6\u05d0'}</h1>
+    </section>
+  );
+}
+
+function WithFallback({ children }: { children: ReactNode }) {
+  return <Suspense fallback={<RouteFallback />}>{children}</Suspense>;
+}
 
 export default function App() {
-  const game = useGame();
-  const [mapViewport, setMapViewport] = useState<MapViewport>(DEFAULT_MAP_VIEWPORT);
-  const completedSettlementIds = game.roundResults
-    .filter((result) => !result.timedOut)
-    .map((result) => result.settlement.id);
-
   return (
-    <div className="app" dir="rtl">
-      {game.phase === 'menu' && (
-        <MenuScreen
-          config={game.config}
-          onUpdateConfig={game.updateConfig}
-          onStartGame={game.startGame}
-        />
-      )}
-
-      {game.phase === 'playing' && game.currentSettlement && (
-        <PlayingScreen
-          key={`${game.currentRound}-${game.currentSettlement.id}-${game.config.timeLimitSeconds}`}
-          availableSettlements={game.filteredSettlements}
-          settlement={game.currentSettlement}
-          currentRound={game.currentRound}
-          totalRounds={game.totalRounds}
-          totalScore={game.totalScore}
-          mode={game.config.mode}
-          mapStyle={game.config.mapStyle}
-          onMapStyleChange={(mapStyle) => game.updateConfig({ mapStyle })}
-          mapViewport={mapViewport}
-          onMapViewportChange={setMapViewport}
-          completedSettlementIds={completedSettlementIds}
-          currentStreak={game.currentStreak}
-          survivalLivesRemaining={game.survivalLivesRemaining}
-          currentDistrictName={game.currentDistrictName}
-          timeLimitSeconds={game.config.timeLimitSeconds}
-          onSubmitGuess={game.submitGuess}
-          onRegisterWrongGuess={game.registerWrongGuess}
-          onEndGame={game.endGame}
-        />
-      )}
-
-      {game.phase === 'feedback' && game.roundResults.length > 0 && (
-        <FeedbackScreen
-          availableSettlements={game.filteredSettlements}
-          result={game.roundResults[game.roundResults.length - 1]}
-          totalScore={game.totalScore}
-          mode={game.config.mode}
-          mapStyle={game.config.mapStyle}
-          onMapStyleChange={(mapStyle) => game.updateConfig({ mapStyle })}
-          mapViewport={mapViewport}
-          onMapViewportChange={setMapViewport}
-          completedSettlementIds={completedSettlementIds}
-          currentStreak={game.currentStreak}
-          currentDistrictName={game.currentDistrictName}
-          isLastRound={game.isLastRound}
-          onNextRound={game.nextRound}
-          onEndGame={game.endGame}
-        />
-      )}
-
-      {game.phase === 'summary' && (
-        <SummaryScreen
-          results={game.roundResults}
-          totalScore={game.totalScore}
-          bestStreak={game.bestStreak}
-          mode={game.config.mode}
-          onRestart={() => {
-            setMapViewport(DEFAULT_MAP_VIEWPORT);
-            game.resetGame();
-          }}
-        />
-      )}
-    </div>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<AppShell />}>
+            <Route
+              index
+              element={
+                <WithFallback>
+                  <HomePage />
+                </WithFallback>
+              }
+            />
+            <Route
+              path="solo"
+              element={
+                <WithFallback>
+                  <SoloPage />
+                </WithFallback>
+              }
+            />
+            <Route
+              path="pvp"
+              element={
+                <WithFallback>
+                  <PvpQueuePage />
+                </WithFallback>
+              }
+            />
+            <Route
+              path="match/:matchId"
+              element={
+                <WithFallback>
+                  <PvpMatchPage />
+                </WithFallback>
+              }
+            />
+            <Route
+              path="profile"
+              element={
+                <WithFallback>
+                  <ProfilePage />
+                </WithFallback>
+              }
+            />
+            <Route path="*" element={<NotFoundPage />} />
+          </Route>
+          <Route
+            path="/auth/callback"
+            element={
+              <WithFallback>
+                <AuthCallbackPage />
+              </WithFallback>
+            }
+          />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }

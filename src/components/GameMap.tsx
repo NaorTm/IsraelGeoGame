@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FeatureCollection } from 'geojson';
 import { MapContainer, TileLayer, GeoJSON, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
@@ -159,7 +159,18 @@ export default function GameMap({
 }: GameMapProps) {
   const [boundaryCollection, setBoundaryCollection] =
     useState<SettlementBoundaryCollection>({});
+  const interactiveRef = useRef(interactive);
+  const onSettlementSelectRef = useRef(onSettlementSelect);
+  const geoJsonRef = useRef<L.GeoJSON | null>(null);
   const isLoadingBoundaries = !hasLoadedBoundariesForSettlements(settlements);
+
+  useEffect(() => {
+    interactiveRef.current = interactive;
+  }, [interactive]);
+
+  useEffect(() => {
+    onSettlementSelectRef.current = onSettlementSelect;
+  }, [onSettlementSelect]);
 
   const correctSettlementSet = useMemo(
     () => new Set(correctSettlementIds ?? []),
@@ -241,12 +252,35 @@ export default function GameMap({
         .join('|'),
     [featureCollection]
   );
-  const featureStyleKey = useMemo(() => {
-    const correctKey = [...correctSettlementSet].sort().join('|');
-    const wrongKey = (wrongGuessIds ?? []).join('|');
 
-    return `${correctKey}::${wrongKey}`;
-  }, [correctSettlementSet, wrongGuessIds]);
+  useEffect(() => {
+    const layerGroup = geoJsonRef.current;
+
+    if (!layerGroup) {
+      return;
+    }
+
+    layerGroup.eachLayer((layer) => {
+      if (!(layer instanceof L.Path)) {
+        return;
+      }
+
+      const layerFeature = (layer as L.Path & {
+        feature?: {
+          properties?: {
+            settlementId?: string;
+            approximate?: boolean;
+          };
+        };
+      }).feature;
+      const settlementId = layerFeature?.properties?.settlementId ?? '';
+      const approximate = layerFeature?.properties?.approximate === true;
+
+      layer.setStyle(
+        getLayerStyle(settlementId, approximate, correctSettlementSet, wrongGuessLevels)
+      );
+    });
+  }, [correctSettlementSet, featureCollectionKey, wrongGuessLevels]);
 
   return (
     <div className="game-map-shell">
@@ -269,7 +303,8 @@ export default function GameMap({
         />
 
         <GeoJSON
-          key={`${featureCollectionKey}::${featureStyleKey}`}
+          ref={geoJsonRef}
+          key={featureCollectionKey}
           data={featureCollection}
           style={(feature) =>
             getLayerStyle(
@@ -282,6 +317,20 @@ export default function GameMap({
           onEachFeature={(feature, layer) => {
             const settlementId = feature.properties?.settlementId;
             const approximate = feature.properties?.approximate === true;
+            const settlementName = feature.properties?.nameHe ?? settlementId;
+
+            if (settlementId && layer instanceof L.Path) {
+              layer.on('add', () => {
+                const element = layer.getElement();
+                if (!element) {
+                  return;
+                }
+
+                element.setAttribute('data-settlement-id', String(settlementId));
+                element.setAttribute('data-testid', `settlement-${settlementId}`);
+                element.setAttribute('aria-label', String(settlementName));
+              });
+            }
 
             layer.on('mouseover', () => {
               if (!interactive || !settlementId || !(layer instanceof L.Path)) {
@@ -316,8 +365,8 @@ export default function GameMap({
             });
 
             layer.on('click', () => {
-              if (interactive && settlementId && onSettlementSelect) {
-                onSettlementSelect(settlementId);
+              if (interactiveRef.current && settlementId && onSettlementSelectRef.current) {
+                onSettlementSelectRef.current(settlementId);
               }
             });
           }}
@@ -380,7 +429,9 @@ export default function GameMap({
       </div>
 
       {isLoadingBoundaries && (
-        <div className="map-loading-badge">טוען גבולות מדויקים...</div>
+        <div className="map-loading-badge" data-testid="map-loading-badge">
+          טוען גבולות מדויקים למחוז שנבחר...
+        </div>
       )}
     </div>
   );

@@ -1,0 +1,236 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import vm from 'node:vm';
+
+const ROOT = process.cwd();
+const BOUNDARIES_DIR = path.join(ROOT, 'src', 'data', 'boundaries');
+const DISTRICT_LOOKUP_PATH = path.join(
+  ROOT,
+  'src',
+  'data',
+  'settlementDistrictLookup.ts'
+);
+const OUTPUT_DIR = path.join(BOUNDARIES_DIR, 'byDistrict');
+const SOURCE_FILES = [
+  'center.ts',
+  'haifa.ts',
+  'jerusalem.ts',
+  'judea_samaria.ts',
+  'north.ts',
+  'shephelah.ts',
+  'south.ts',
+  'tel_aviv.ts',
+  'kmlSupplement.ts',
+];
+
+function extractLiteral(source, exportName, openChar, closeChar) {
+  const exportIndex = source.indexOf(`export const ${exportName}`);
+
+  if (exportIndex === -1) {
+    throw new Error(`Could not find export ${exportName}.`);
+  }
+
+  const equalsIndex = source.indexOf('=', exportIndex);
+  const startIndex = source.indexOf(openChar, equalsIndex);
+
+  if (startIndex === -1) {
+    throw new Error(`Could not find ${openChar} for ${exportName}.`);
+  }
+
+  let depth = 0;
+  let inString = false;
+  let stringQuote = '';
+  let escaped = false;
+
+  for (let index = startIndex; index < source.length; index += 1) {
+    const char = source[index];
+
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+
+      if (char === '\\') {
+        escaped = true;
+        continue;
+      }
+
+      if (char === stringQuote) {
+        inString = false;
+        stringQuote = '';
+      }
+
+      continue;
+    }
+
+    if (char === '"' || char === "'" || char === '`') {
+      inString = true;
+      stringQuote = char;
+      continue;
+    }
+
+    if (char === openChar) {
+      depth += 1;
+      continue;
+    }
+
+    if (char === closeChar) {
+      depth -= 1;
+
+      if (depth === 0) {
+        return source.slice(startIndex, index + 1);
+      }
+    }
+  }
+
+  throw new Error(`Could not extract literal for ${exportName}.`);
+}
+
+function extractDeclaredLiteral(source, declaration, openChar, closeChar) {
+  const declarationIndex = source.indexOf(declaration);
+
+  if (declarationIndex === -1) {
+    throw new Error(`Could not find declaration ${declaration}.`);
+  }
+
+  const equalsIndex = source.indexOf('=', declarationIndex);
+  const startIndex = source.indexOf(openChar, equalsIndex);
+
+  if (startIndex === -1) {
+    throw new Error(`Could not find ${openChar} for ${declaration}.`);
+  }
+
+  let depth = 0;
+  let inString = false;
+  let stringQuote = '';
+  let escaped = false;
+
+  for (let index = startIndex; index < source.length; index += 1) {
+    const char = source[index];
+
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+
+      if (char === '\\') {
+        escaped = true;
+        continue;
+      }
+
+      if (char === stringQuote) {
+        inString = false;
+        stringQuote = '';
+      }
+
+      continue;
+    }
+
+    if (char === '"' || char === "'" || char === '`') {
+      inString = true;
+      stringQuote = char;
+      continue;
+    }
+
+    if (char === openChar) {
+      depth += 1;
+      continue;
+    }
+
+    if (char === closeChar) {
+      depth -= 1;
+
+      if (depth === 0) {
+        return source.slice(startIndex, index + 1);
+      }
+    }
+  }
+
+  throw new Error(`Could not extract literal for ${declaration}.`);
+}
+
+function evaluateLiteral(literalSource) {
+  return vm.runInNewContext(`(${literalSource})`, {});
+}
+
+function toDistrictFileName(index) {
+  return `district_${String(index + 1).padStart(2, '0')}.ts`;
+}
+
+async function main() {
+  const districtLookupSource = await fs.readFile(DISTRICT_LOOKUP_PATH, 'utf8');
+  const settlementDistrictById = evaluateLiteral(
+    extractLiteral(districtLookupSource, 'settlementDistrictById', '{', '}')
+  );
+
+  const districtBoundaries = new Map();
+
+  for (const fileName of SOURCE_FILES) {
+    const source = await fs.readFile(path.join(BOUNDARIES_DIR, fileName), 'utf8');
+    const literalSource =
+      source.includes('export const settlementBoundaries')
+        ? extractLiteral(source, 'settlementBoundaries', '{', '}')
+        : extractDeclaredLiteral(
+            source,
+            'const kmlSupplementBoundaries',
+            '{',
+            '}'
+          );
+    const settlementBoundaries = evaluateLiteral(literalSource);
+
+    for (const [settlementId, boundary] of Object.entries(settlementBoundaries)) {
+      const districtId = settlementDistrictById[settlementId];
+
+      if (!districtId) {
+        continue;
+      }
+
+      const collection = districtBoundaries.get(districtId) ?? {};
+      collection[settlementId] = boundary;
+      districtBoundaries.set(districtId, collection);
+    }
+  }
+
+  const districtIds = [...districtBoundaries.keys()].sort((left, right) =>
+    left.localeCompare(right, 'he')
+  );
+
+  await fs.rm(OUTPUT_DIR, { recursive: true, force: true });
+  await fs.mkdir(OUTPUT_DIR, { recursive: true });
+
+  const loaderLines = [
+    '// Generated by `npm run boundaries:generate-district-loaders`.',
+    'export const boundaryDistrictLoaders = {',
+  ];
+
+  await Promise.all(
+    districtIds.map(async (districtId, index) => {
+      const fileName = toDistrictFileName(index);
+      const collection = districtBoundaries.get(districtId) ?? {};
+      const fileContents = [
+        "import type { SettlementBoundaryCollection } from '../../../types';",
+        '',
+        '// Generated by `npm run boundaries:generate-district-loaders`.',
+        `export const settlementBoundaries: SettlementBoundaryCollection = ${JSON.stringify(
+          collection,
+          null,
+          2
+        )};`,
+        '',
+      ].join('\n');
+
+      await fs.writeFile(path.join(OUTPUT_DIR, fileName), fileContents, 'utf8');
+      loaderLines.push(`  ${JSON.stringify(districtId)}: () => import('./${fileName}'),`);
+    })
+  );
+
+  loaderLines.push('} as const;', '', 'export type BoundaryDistrictId = keyof typeof boundaryDistrictLoaders;', '');
+
+  await fs.writeFile(path.join(OUTPUT_DIR, 'loaders.ts'), loaderLines.join('\n'), 'utf8');
+
+  console.log(`Generated ${districtIds.length} district boundary chunks.`);
+}
+
+await main();

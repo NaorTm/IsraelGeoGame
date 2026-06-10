@@ -1,6 +1,7 @@
 import type { Region } from '../types';
+import { supplementalDistrictSettlementIds } from './districtSupplement';
 
-export const districtSettlementIds = {
+export const baseDistrictSettlementIds = {
   "אילת": [
     "eilat",
     "elot",
@@ -1305,6 +1306,13 @@ export const districtSettlementIds = {
     "zippori",
   ],
 } as const satisfies Record<string, readonly string[]>;
+
+export const districtSettlementIds = Object.fromEntries(
+  Object.entries(baseDistrictSettlementIds).map(([districtId, settlementIds]) => [
+    districtId,
+    [...settlementIds, ...(supplementalDistrictSettlementIds[districtId] ?? [])],
+  ])
+) as Record<string, string[]>;
 
 export const regions: Region[] = [
   {

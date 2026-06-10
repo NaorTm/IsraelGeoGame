@@ -49,70 +49,50 @@ export default function FeedbackScreen({
   const scoreLabel = getScoreLabel(result);
   const regionName =
     regions.find((r) => r.id === getSettlementDistrictId(result.settlement))?.name_he || '';
+  const districtName =
+    mode === 'mastery' && currentDistrictName ? currentDistrictName : regionName;
 
   return (
     <div className="feedback-screen">
-      {/* Score feedback */}
       <div className="feedback-card">
-        <div className="feedback-emoji">{scoreLabel.emoji}</div>
-        <div className="feedback-score-text">{scoreLabel.text}</div>
-
-        <div className="feedback-details">
-          <div className="detail-row">
-            <span className="detail-label">יישוב:</span>
-            <span className="detail-value">
-              {result.settlement.name_he} ({result.settlement.name_en})
-            </span>
-          </div>
-          <div className="detail-row">
-            <span className="detail-label">מחוז:</span>
-            <span className="detail-value">
-              {mode === 'mastery' && currentDistrictName ? currentDistrictName : regionName}
-            </span>
-          </div>
-          <div className="detail-row">
-            <span className="detail-label">ניסיונות:</span>
-            <span className="detail-value distance">
-              {formatAttempts(result.attempts)}
-            </span>
-          </div>
-          <div className="detail-row score-row">
-            <span className="detail-label">ניקוד בסיס:</span>
-            <span className="detail-value score">
-              +{result.baseScore} נקודות
-            </span>
-          </div>
-          {result.timeBonus > 0 && (
-            <div className="detail-row score-row">
-              <span className="detail-label">בונוס מהירות:</span>
-              <span className="detail-value score">+{result.timeBonus}</span>
+        <div className="feedback-header">
+          <div className="feedback-result">
+            <div className="feedback-emoji">{scoreLabel.emoji}</div>
+            <div className="feedback-title-group">
+              <div className="feedback-score-text">{scoreLabel.text}</div>
+              <div className="feedback-settlement">
+                <span className="feedback-settlement-he">{result.settlement.name_he}</span>
+                <span className="feedback-settlement-en">({result.settlement.name_en})</span>
+              </div>
             </div>
-          )}
-          {result.streakBonus > 0 && (
-            <div className="detail-row score-row">
-              <span className="detail-label">בונוס רצף:</span>
-              <span className="detail-value score">+{result.streakBonus}</span>
-            </div>
-          )}
-          <div className="detail-row score-row total-round-row">
-            <span className="detail-label">סה"כ לסיבוב:</span>
-            <span className="detail-value score">+{result.score}</span>
           </div>
-          {result.usedApproximateBoundary && (
-            <div className="detail-row score-row">
-              <span className="detail-label">הערה:</span>
-              <span className="detail-value">ליישוב הזה מוצג אזור מקורב</span>
-            </div>
-          )}
+          <div className="feedback-score-pills">
+            <div className="feedback-pill feedback-pill-round">+{result.score} לסיבוב</div>
+            <div className="feedback-pill feedback-pill-total">סה"כ {totalScore}</div>
+          </div>
         </div>
 
-        <div className="feedback-total">סה"כ ניקוד: {totalScore}</div>
-        {currentStreak > 1 && !result.timedOut && (
-          <div className="feedback-streak">רצף מושלם נוכחי: {currentStreak}</div>
-        )}
+        <div className="feedback-meta">
+          <div className="feedback-chip">מחוז: {districtName}</div>
+          <div className="feedback-chip feedback-chip-attempts">
+            ניסיונות: {formatAttempts(result.attempts)}
+          </div>
+          <div className="feedback-chip">בסיס: +{result.baseScore}</div>
+          {result.timeBonus > 0 && (
+            <div className="feedback-chip feedback-chip-bonus">מהירות: +{result.timeBonus}</div>
+          )}
+          {result.streakBonus > 0 && (
+            <div className="feedback-chip feedback-chip-bonus">רצף: +{result.streakBonus}</div>
+          )}
+          {currentStreak > 1 && !result.timedOut && (
+            <div className="feedback-chip feedback-chip-streak">רצף נוכחי: {currentStreak}</div>
+          )}
+          {result.usedApproximateBoundary && (
+            <div className="feedback-chip feedback-chip-note">ליישוב הזה מוצג אזור מקורב</div>
+          )}
+        </div>
       </div>
 
-      {/* Map showing both markers */}
       <div className="map-container feedback-map">
         <GameMap
           settlements={availableSettlements}
@@ -127,14 +107,13 @@ export default function FeedbackScreen({
         />
       </div>
 
-      {/* Actions */}
       <div className="feedback-actions">
         {isLastRound ? (
-          <button className="next-btn summary-btn" onClick={onNextRound}>
+          <button className="next-btn summary-btn" data-testid="solo-feedback-next" onClick={onNextRound}>
             📊 צפה בסיכום
           </button>
         ) : (
-          <button className="next-btn" onClick={onNextRound}>
+          <button className="next-btn" data-testid="solo-feedback-next" onClick={onNextRound}>
             ➡️ סיבוב הבא
           </button>
         )}

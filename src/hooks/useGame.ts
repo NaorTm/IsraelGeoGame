@@ -1,8 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import type { Settlement, RoundResult, GameConfig, GamePhase } from '../types';
 import { defaultMapStyleId } from '../data/mapStyles';
-import { regions } from '../data/regions';
-import { settlements } from '../data/settlements';
+import type { Region } from '../types';
 import {
   calculateAttemptScore,
   calculateStreakBonus,
@@ -42,7 +41,12 @@ const defaultConfig: GameConfig = {
 
 const SURVIVAL_MAX_MISTAKES = 3;
 
-export function useGame() {
+interface UseSoloGameOptions {
+  settlements: Settlement[];
+  regions: Region[];
+}
+
+export function useSoloGame({ settlements, regions }: UseSoloGameOptions) {
   const [state, setState] = useState<GameState>({
     phase: 'menu',
     config: defaultConfig,
@@ -57,19 +61,16 @@ export function useGame() {
     masteryDistrictIndex: 0,
   });
 
-  const exactBoundarySettlements = useMemo(
-    () => settlements.filter((settlement) => !usesApproximateBoundary(settlement)),
-    []
-  );
+  const playableSettlements = useMemo(() => settlements, [settlements]);
 
   const filteredSettlements = useMemo(() => {
     if (state.config.selectedRegions.length === 0) {
-      return exactBoundarySettlements;
+      return playableSettlements;
     }
-    return exactBoundarySettlements.filter((settlement) =>
+    return playableSettlements.filter((settlement) =>
       state.config.selectedRegions.includes(getSettlementDistrictId(settlement))
     );
-  }, [exactBoundarySettlements, state.config.selectedRegions]);
+  }, [playableSettlements, state.config.selectedRegions]);
 
   const masteryDistrictIds = useMemo(() => {
     const orderedDistricts =
@@ -84,7 +85,7 @@ export function useGame() {
         )
       )
       .map((region) => region.id);
-  }, [filteredSettlements, state.config.selectedRegions]);
+  }, [filteredSettlements, regions, state.config.selectedRegions]);
 
   const totalScore = useMemo(
     () => state.roundResults.reduce((sum, r) => sum + r.score, 0),
@@ -196,12 +197,20 @@ export function useGame() {
           usedApproximateBoundary: usesApproximateBoundary(prev.currentSettlement),
         };
 
+        const survivalMistakes =
+          prev.config.mode === 'survival'
+            ? Math.max(prev.survivalMistakes, wrongGuessIds.length)
+            : prev.survivalMistakes;
+        const shouldFinishSurvival =
+          prev.config.mode === 'survival' && (timedOut || survivalMistakes >= SURVIVAL_MAX_MISTAKES);
+
         return {
           ...prev,
-          phase: 'feedback',
+          phase: shouldFinishSurvival ? 'summary' : 'feedback',
           roundResults: [...prev.roundResults, result],
           currentStreak: nextStreak,
           bestStreak: Math.max(prev.bestStreak, nextStreak),
+          survivalMistakes,
         };
       });
     },
@@ -210,7 +219,7 @@ export function useGame() {
 
   const registerWrongGuess = useCallback(() => {
     setState((prev) => {
-      if (prev.config.mode !== 'survival') {
+      if (prev.config.mode !== 'survival' || prev.phase !== 'playing') {
         return prev;
       }
 
@@ -323,6 +332,11 @@ export function useGame() {
       currentSettlement: null,
       roundResults: [],
       questionPool: [],
+      currentStreak: 0,
+      bestStreak: 0,
+      survivalMistakes: 0,
+      masteryDistrictIds: [],
+      masteryDistrictIndex: 0,
     }));
   }, []);
 
@@ -350,3 +364,5 @@ export function useGame() {
     resetGame,
   };
 }
+
+export const useGame = useSoloGame;

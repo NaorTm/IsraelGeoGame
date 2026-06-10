@@ -1,259 +1,312 @@
-# 🗺️ משחק הגיאוגרפיה של ישראל — Israel Geo Game
+# Israel Geo Game
 
-An educational geography quiz game where players identify Israeli cities and settlements by clicking the correct settlement polygon on an interactive map of Israel.
+Production MVP foundation for a browser geography game about Israeli settlements and districts, now evolved from a frontend-only toy into a backend-backed web product with real auth, persistent progress, and authoritative PvP.
 
-![Current Menu Screen](docs/readme-home.png)
+## What Exists Now
 
-## Features
+- guest solo play
+- Supabase auth with email magic link and Google OAuth wiring
+- persistent profiles with username claim flow
+- cloud-saved solo progress
+- authoritative 1v1 PvP with backend-owned seed, rounds, scoring, and winner resolution
+- Supabase RLS, triggers, and SQL RPCs
+- runtime-validated local Supabase setup
+- browser E2E coverage for login, onboarding, solo save, PvP queue, ready, match, refresh resilience, result, logout, and relogin
+- preview-deployable Vercel frontend setup
 
-- **Polygon-based gameplay** — Click the correct settlement shape directly on the map
-- **Large national dataset** — `1,237` settlements in the data, with `1,226` currently playable using exact boundaries
-- **District-based play** — Play all Israel or filter by specific districts
-- **Five game modes** — Rounds, Endless, Time Attack, Survival, and Mastery
-- **Attempt-based scoring** — First try is worth the most, then points decrease with each miss
-- **Automatic reveal after 3 misses** — The correct settlement is revealed and the round scores `0` base points
-- **Time bonus and streak bonus** — Time Attack rewards speed, and perfect streaks reward consistency
-- **Round feedback and summary** — Review misses, per-round score, total score, bonuses, and best streak
-- **Multiple map styles** — Clean, Streets, Topographic, and Satellite
-- **Hebrew support** — Full RTL layout with Hebrew as the primary language, English secondary
-- **Clean architecture** — Modular React + TypeScript code, easy to extend with new features
+## Stack
 
-## Tech Stack
+- Frontend: React 19, TypeScript, Vite, React Router, Leaflet
+- Backend: Supabase Auth, Postgres, Realtime, SQL RPC functions
+- Testing: Vitest, Playwright
+- Deployment: Vercel frontend + Supabase backend
 
-| Layer | Technology |
-|-------|-----------|
-| Framework | React 19 + TypeScript |
-| Build tool | Vite |
-| Map | Leaflet + React-Leaflet + public tile providers |
-| Data | Static TypeScript modules with settlement metadata and boundary polygons |
-| Styling | Plain CSS with CSS variables |
+## Architecture
 
-## Prerequisites
+### Auth
 
-- **Node.js** ≥ 18
-- **npm** ≥ 9
+- solo stays playable without login
+- cloud save and PvP require a real Supabase session
+- a `profiles` row is created automatically from `auth.users`
+- users claim a unique public username after login for PvP and future leaderboard display
+- email magic link is locally validated end to end
+- Google OAuth is wired for local and preview, but still requires real provider credentials and a real Google account login to complete final validation
 
-## Getting Started
+### Solo
+
+- solo gameplay stays client-driven for responsiveness
+- authenticated solo runs are written through `record_solo_session`
+- `user_district_progress` stores best score, best streak, accuracy, totals, and last-played metadata
+- solo persistence is intentionally non-authoritative in MVP and must not be used for ranked competition
+
+### PvP
+
+- players queue by district
+- backend creates the match, seed, official round order, and player rows
+- both players get the same official challenge
+- client submits guesses only
+- backend computes round resolution and final winner
+- winner order: higher score, fewer misses, faster completion time, else draw
+
+### Realtime and Reliability
+
+- queue and match pages use Supabase Realtime as the primary update path
+- a 4-second polling fallback remains in place for reliability
+- the fallback does not weaken authority because all official state still comes from backend tables and RPCs
+- browser validation now covers refresh during PvP lobby, active match, and waiting-for-result states
+
+## Database
+
+Main migration:
+
+- [20260319150000_prod_mvp_foundation.sql](C:/Users/gameo/OneDrive/Desktop/IsraelGeoGame/IsraelGeoGame/supabase/migrations/20260319150000_prod_mvp_foundation.sql)
+
+Core tables:
+
+- `profiles`
+- `districts`
+- `settlements_catalog`
+- `user_district_progress`
+- `game_sessions`
+- `session_players`
+- `session_rounds`
+- `player_round_results`
+- `session_answer_events`
+- `matchmaking_queue`
+
+Authoritative RPCs:
+
+- `claim_username`
+- `queue_pvp_match`
+- `cancel_matchmaking`
+- `set_match_ready`
+- `submit_pvp_guess`
+- `submit_pvp_timeout`
+- `record_solo_session`
+
+## Local Setup
+
+### 1. Install dependencies
 
 ```bash
-# Clone the repository
-git clone https://github.com/NaorTm/IsraelGeoGame.git
-cd IsraelGeoGame
-
-# Install dependencies (recommended for CI parity)
 npm ci
+```
 
-# Start the development server
+### 2. Frontend env
+
+Copy [.env.example](C:/Users/gameo/OneDrive/Desktop/IsraelGeoGame/IsraelGeoGame/.env.example) to `.env` and set:
+
+```bash
+VITE_SUPABASE_URL=http://127.0.0.1:54321
+VITE_SUPABASE_ANON_KEY=<local-or-hosted-anon-key>
+```
+
+### 3. Start local Supabase
+
+```bash
+npm run supabase:start:local
+npm run supabase:reset:local
+```
+
+Validated local ports:
+
+- API/Auth/REST: `http://127.0.0.1:54321`
+- Postgres: `127.0.0.1:54322`
+- Studio: `http://127.0.0.1:54323`
+- Mailpit: `http://127.0.0.1:54324`
+
+The reset applies migrations and [seed.sql](C:/Users/gameo/OneDrive/Desktop/IsraelGeoGame/IsraelGeoGame/supabase/seed.sql).
+
+### 4. Auth providers
+
+Configured local redirect URLs in [config.toml](C:/Users/gameo/OneDrive/Desktop/IsraelGeoGame/IsraelGeoGame/supabase/config.toml):
+
+- `http://127.0.0.1:5173/auth/callback`
+- `http://127.0.0.1:4173/auth/callback`
+
+Email magic link works locally through Mailpit.
+
+Google OAuth requires:
+
+- `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID`
+- `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET`
+
+Supabase callback:
+
+- `http://127.0.0.1:54321/auth/v1/callback`
+
+Frontend callback:
+
+- `http://127.0.0.1:5173/auth/callback`
+- `http://127.0.0.1:4173/auth/callback`
+
+### 5. Run the frontend
+
+```bash
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173) in your browser.
+## Validation Commands
 
-## Available Scripts
-
-```bash
-npm run dev               # Start Vite dev server
-npm run lint              # Run ESLint
-npm run build             # TypeScript check + production build
-npm run preview           # Preview production build
-npm run localities:build  # Rebuild settlements list from official registries
-npm run boundaries:fetch  # Fetch/refresh settlement polygons
-npm run boundaries:split  # Split fetched polygons into district chunks
-npm run boundaries:batch  # Fetch polygons in resumable batches
-npm run boundaries:build  # boundaries:fetch + boundaries:split
-```
-
-## Build for Production
+### Core
 
 ```bash
-npm run build    # TypeScript check + Vite production build
-npm run preview  # Preview the production build locally
+npm test
+npm run lint
+npm run build
 ```
 
-The output is placed in the `dist/` folder and can be deployed to any static hosting service.
-
-## Deploy to GitHub Pages
-
-This repository includes a GitHub Actions workflow that lints, builds, and deploys the app to GitHub Pages on every push to `main`.
-
-> The workflow installs dependencies with `npm ci`, so `package-lock.json` must stay committed.
-
-To enable it:
-
-1. Open the repository settings on GitHub.
-2. Go to **Pages**.
-3. Set **Source** to **GitHub Actions**.
-
-After that, each push to `main` will publish the contents of `dist/`.
-
-The site will be served from:
-
-```text
-https://naortm.github.io/IsraelGeoGame/
-```
-
-## Gameplay
-
-Each round presents a settlement name and asks the player to click the correct settlement polygon on the map.
-
-- A correct answer on the first click gives the maximum base score.
-- Each wrong click reduces the base score.
-- After `3` wrong clicks, the correct settlement is revealed automatically and the base score becomes `0`.
-- In Time Attack mode, finishing faster adds a bonus.
-- Perfect first-try streaks add an additional streak bonus.
-
-### Game modes
-
-- **Rounds** — Classic game with a fixed number of rounds (`5`, `10`, `15`, or `20`)
-- **Endless** — Keep playing until you decide to stop
-- **Time Attack** — Every round has a timer and awards a speed bonus
-- **Survival** — The game ends after `3` total wrong guesses across the session
-- **Mastery** — Finish one district at a time, then unlock the next district in sequence
-
-## Project Structure
-
-```
-src/
-├── components/          # React UI components
-│   ├── GameMap.tsx      # Leaflet map with settlement polygons and click handling
-│   ├── MenuScreen.tsx   # District, mode, round-count, timer, and map-style selection
-│   ├── PlayingScreen.tsx# Active round state and answer handling
-│   ├── FeedbackScreen.tsx# Post-round feedback and revealed answer state
-│   └── SummaryScreen.tsx# End-of-game score and round summary table
-├── data/
-│   ├── settlements.ts    # Settlement dataset
-│   ├── districts.ts      # District definitions and settlement-to-district mapping
-│   ├── settlementBoundaries.ts # Combined boundary dataset metadata
-│   └── boundaries/       # Split boundary chunks and boundary metadata
-├── hooks/
-│   └── useGame.ts       # Core game state machine
-├── types/
-│   └── index.ts         # TypeScript interfaces and types
-├── utils/
-│   ├── geo.ts           # Scoring, attempt formatting, and shuffle helpers
-│   ├── districts.ts     # District lookup helpers
-│   └── settlementBoundaries.ts # Boundary loading and fallback helpers
-├── App.tsx              # Root component — phase router
-├── App.css              # All application styles
-├── index.css            # Global CSS reset
-└── main.tsx             # Entry point
-```
-
-## Data Model
-
-### Settlement
-
-Each settlement entry in `src/data/settlements.ts`:
-
-```typescript
-{
-  id: "jerusalem",
-  name_he: "ירושלים",
-  name_en: "Jerusalem",
-  lat: 31.7683,
-  lng: 35.2137,
-  region: "jerusalem",
-  type: "city",
-  aliases: ["ירושלם"]
-}
-```
-
-### District Mapping
-
-District definitions are re-exported through `src/data/regions.ts`, and the primary district mapping lives in `src/data/districts.ts`.
-
-Example district entry:
-
-```typescript
-{
-  id: "גליל עליון",
-  name_he: "גליל עליון",
-  name_en: "גליל עליון",
-  description_he: "מחוז פיקוד העורף גליל עליון",
-  description_en: "Home Front Command district גליל עליון"
-}
-```
-
-Playable settlement boundaries are loaded from the split files under `src/data/boundaries/`. A small fallback list in `src/data/boundaries/metadata.ts` marks settlements that currently only have approximate polygons; those are excluded from active play.
-
-## How to Update Data
-
-### Adding settlements
-
-Edit `src/data/settlements.ts` and add entries to the `settlements` array. Every settlement should reference a valid base `region` id, and if you want district-based play to place it in a specific district, update the mapping in `src/data/districts.ts` as well.
-
-To rebuild the settlements dataset from the official locality registries plus alias normalization, run:
+### Live backend and browser
 
 ```bash
-npm run localities:build
+npm run test:runtime
+npm run test:e2e
+npm run test:all:local
 ```
 
-### Rebuilding settlement polygons
-
-When you want to refresh the polygon dataset, run:
+### Data / content maintenance
 
 ```bash
-npm run boundaries:build
+npm run audit:alerts-map
+npm run report:unmatched-placemarks
+npm run report:inhabited-unmatched
 ```
 
-The fetch step first tries Nominatim, then falls back to an exact-name Overpass query around the settlement centroid when global text geocoding returns the wrong place. This matters most for ambiguous names and settlements in Judea & Samaria, where plain geocoding often resolves to roads or streets instead of the settlement polygon.
-
-For targeted retries, you can rebuild only a subset:
+### Data generation helpers
 
 ```bash
-BOUNDARY_IDS=ariel,efrat,modiin_illit npm run boundaries:fetch
+npm run supabase:seed
+npm run boundaries:generate-kml-supplement
+npm run districts:generate-lookup
+npm run settlements:generate-regions
+npm run boundaries:generate-district-loaders
 ```
 
-For large refreshes after expanding the locality list, use resumable chunks:
+## Runtime Smoke Test Strategy
 
-```bash
-CHUNK_SIZE=20 MAX_BATCHES=5 npm run boundaries:batch
-```
+Keep the runtime smoke test.
 
-This will iterate over the current approximate-locality list, fetch boundaries in chunks, and re-split metadata after each chunk.
+The live runtime check is in [supabase.runtime.test.ts](C:/Users/gameo/OneDrive/Desktop/IsraelGeoGame/IsraelGeoGame/src/services/supabase.runtime.test.ts). It stays separate from browser tests and from the default unit suite so local development does not hang on live I/O.
 
-### Adding or changing districts
+Run it when:
 
-Edit `src/data/districts.ts`. The game UI automatically picks up new district definitions and settlement mappings.
+- SQL migrations change
+- RPC logic changes
+- RLS changes
+- auth/session handling changes
+- queue/match read logic changes
 
-## Scoring
+## Browser E2E Coverage
 
-### Base score by wrong clicks
+The Playwright suite is in [app.e2e.spec.ts](C:/Users/gameo/OneDrive/Desktop/IsraelGeoGame/IsraelGeoGame/e2e/app.e2e.spec.ts).
 
-| Wrong clicks before success | Base score |
-|----------------------------|------------|
-| 0 | 3 |
-| 1 | 2 |
-| 2 | 1 |
-| 3+ | 0 |
+Current validated browser path:
 
-After the third wrong click, the round is submitted automatically and the correct settlement is revealed.
+- email signup via Supabase auth API
+- magic-link login through the real UI
+- `/auth/callback` handling and session creation
+- username claim in the browser UI
+- solo start and completion through the map UI
+- solo cloud-save confirmation
+- PvP queue entry in two browser contexts
+- ready-state transitions
+- full PvP answer submission through browser polygon clicks
+- opponent progress visibility
+- refresh during PvP lobby
+- refresh during active match
+- refresh after finishing before result
+- official result screen
+- logout and repeat login
 
-### Time Attack bonus
+## Performance Status
 
-| Remaining time ratio | Bonus |
-|----------------------|-------|
-| `>= 66%` | 3 |
-| `>= 33%` | 2 |
-| `> 0%` | 1 |
-| `0%` | 0 |
+Recent performance work now in place:
 
-### Streak bonus
+- route-level lazy loading
+- settlement catalog split by source region
+- district-level boundary chunks for narrow play scopes
+- vendor chunk splitting in Vite
+- district-focused prefetch for likely solo/PvP play paths
+- smaller approximate fallback polygons
+- lower-vertex approximate polygons
+- heavy map/catalog payloads only load when gameplay actually starts
 
-- Perfect first-try streaks start giving bonus points from the second consecutive perfect round.
-- The streak bonus grows by `+1` per qualifying round and is capped at `+3`.
+Current biggest remaining frontend cost:
 
-## Future Expansion Ideas
+- large broad-scope boundary fallbacks such as the full north-region chunk when selection is too wide for district-level loading
 
-The architecture is designed for easy extension:
+## Data Coverage and Reports
 
-- 🏆 Leaderboard (localStorage or backend)
-- 🔍 Search & learn mode — explore settlements on the map
-- 🎚️ Difficulty levels
-- 🗂️ Category filters (only cities, only kibbutzim, etc.)
-- 🗺️ Map overlays (region boundaries, terrain)
-- 🌐 Full i18n support
+Content completeness reports stay explicit instead of silent:
 
-## License
+- [inhabited-unmatched-review.md](C:/Users/gameo/OneDrive/Desktop/IsraelGeoGame/IsraelGeoGame/reports/inhabited-unmatched-review.md)
+- [unmatched-placemarks-report.md](C:/Users/gameo/OneDrive/Desktop/IsraelGeoGame/IsraelGeoGame/reports/unmatched-placemarks-report.md)
+- [approximate-settlements-review.md](C:/Users/gameo/OneDrive/Desktop/IsraelGeoGame/IsraelGeoGame/reports/approximate-settlements-review.md)
 
-This project is provided as-is for educational purposes.
+Important current state:
+
+- approximate-only playable places remain explicit and intentionally handled
+- approximate fallback polygons are now much smaller than earlier versions
+- inhabited-but-ambiguous KML placemarks stay visible in reports for curated review instead of disappearing from sight
+
+## Preview Deployment Checklist
+
+A preview deploy is considered ready only when all of the following are true:
+
+- `npm run build` passes
+- `npm run test:runtime` passes against a running Supabase stack
+- `npm run test:e2e` passes
+- no known broken route in home, solo, profile, PvP queue, match, or auth callback
+
+Required frontend env vars in Vercel:
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+
+Required Supabase redirect URLs:
+
+- local dev: `http://127.0.0.1:5173/auth/callback`
+- local E2E: `http://127.0.0.1:4173/auth/callback`
+- Vercel preview: `https://<preview-domain>/auth/callback`
+- production: `https://<production-domain>/auth/callback`
+
+Required Google OAuth configuration per environment:
+
+- provider enabled in Supabase
+- correct Google client ID/secret loaded for that environment
+- Google authorized redirect URI pointing at the Supabase auth callback for that environment
+
+Recommended preview validation sequence:
+
+1. deploy preview
+2. verify `/`, `/solo`, `/profile`, `/pvp`
+3. verify email magic-link login
+4. verify username claim
+5. verify solo save and profile progress
+6. verify two-browser PvP queue, ready, active match, result
+7. verify logout and relogin
+
+## Security Status
+
+Protected now:
+
+- RLS on personal and match tables
+- participant-only access to match/session data
+- official PvP writes through SQL RPCs only
+- backend-owned queue matching, round order, and winner resolution
+- anon key only on the frontend
+
+Still worth hardening later:
+
+- heartbeat / disconnect-forfeit rules
+- stronger SQL-level automated coverage
+- authoritative solo if ranked solo becomes a product goal
+- moderation / username abuse tooling
+- eventual removal of polling fallback if Realtime proves stable enough in browser
+
+## Current Focus After This Pass
+
+- boundary-loading strategy for broader multi-district selections
+- continued UI polish around loading and recovery states
+- curated additions from the remaining inhabited-but-ambiguous placemark bucket
+- final Google OAuth end-to-end validation with real provider credentials and an interactive account login
